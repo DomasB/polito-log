@@ -37,9 +37,14 @@ The deployment consists of three Railway services:
 3. Railway will detect it as a monorepo
 4. Configure the service:
    - **Service Name**: `backend`
-   - **Root Directory**: `/backend`
-   - **Builder**: Dockerfile
-   - **Dockerfile Path**: `Dockerfile`
+   - **Root Directory**: Leave empty (uses project root, configured in railway.json)
+   - Click "Deploy"
+
+5. After initial deployment, verify configuration:
+   - Go to service Settings → Build
+   - Verify "Dockerfile Path" shows `backend/Dockerfile`
+   - Verify "Watch Paths" shows `backend/**`
+   - These are configured automatically from `backend/railway.json`
 
 #### Backend Environment Variables
 
@@ -75,9 +80,14 @@ SECRET_KEY=<generate-a-secure-random-key>
 2. Select your `polito-log` repository again
 3. Configure the service:
    - **Service Name**: `frontend`
-   - **Root Directory**: `/frontend`
-   - **Builder**: Dockerfile
-   - **Dockerfile Path**: `Dockerfile`
+   - **Root Directory**: Leave empty (uses project root, configured in railway.json)
+   - Click "Deploy"
+
+4. After initial deployment, verify configuration:
+   - Go to service Settings → Build
+   - Verify "Dockerfile Path" shows `frontend/Dockerfile`
+   - Verify "Watch Paths" shows `frontend/**`
+   - These are configured automatically from `frontend/railway.json`
 
 #### Frontend Environment Variables
 
@@ -109,15 +119,26 @@ Add the following secrets:
 
 ### 6. Set Up Railway Services for CI/CD
 
-For GitHub Actions to work correctly, you need to:
+For GitHub Actions to work correctly:
 
-1. In Railway dashboard, go to each service (backend/frontend)
-2. Click on Settings → General
-3. Note the **Service ID** or ensure services are named exactly:
-   - `backend` for backend service
-   - `frontend` for frontend service
+1. **Connect GitHub Repository to Railway:**
+   - In Railway dashboard, go to Project Settings
+   - Click on "Deployments" tab
+   - Ensure your GitHub repository is connected
+   - This allows Railway CLI to auto-detect the project from GitHub Actions
 
-The GitHub Actions workflows reference these service names.
+2. **Verify Service Names:**
+   - Go to each service (backend/frontend)
+   - Click on Settings → General
+   - Ensure services are named exactly:
+     - `backend` for backend service
+     - `frontend` for frontend service
+   - The GitHub Actions workflows reference these service names
+
+3. **Important - Monorepo Configuration:**
+   - Both services should have empty Root Directory in Railway dashboard
+   - The `railway.json` files handle the monorepo structure
+   - Railway will build from project root and use paths specified in railway.json
 
 ### 7. Configure Service Domains
 
@@ -216,25 +237,41 @@ Access these from each service's "Metrics" tab.
 
 ### Common Issues
 
-1. **Build Failures**
+1. **"Could not find Dockerfile" Error**
+   - Cause: Root directory misconfigured in Railway dashboard
+   - Solution: Set Root Directory to empty/blank in service Settings
+   - Verify `railway.json` has correct `dockerfilePath` (e.g., `backend/Dockerfile`)
+
+2. **"Could not find root directory: /backend" Error (GitHub Actions)**
+   - Cause: GitHub Actions workflow running from subdirectory
+   - Solution: Already fixed in workflows - `railway up` runs from project root
+   - Verify you're using the updated workflow files
+
+3. **Monorepo Detection Issues**
+   - Cause: Railway not recognizing monorepo structure
+   - Solution: Ensure `watchPatterns` are set in railway.json files
+   - Verify Railway dashboard shows correct Watch Paths in Settings → Build
+
+4. **Build Failures**
    - Check Railway build logs for errors
-   - Verify Dockerfile paths are correct
+   - Verify Dockerfile paths are correct in railway.json
    - Ensure all dependencies are in requirements.txt/package.json
 
-2. **Database Connection Errors**
+5. **Database Connection Errors**
    - Verify `DATABASE_URL` is correctly linked to Postgres service
    - Check database service is running
    - Verify network connectivity between services
 
-3. **Frontend Can't Connect to Backend**
+6. **Frontend Can't Connect to Backend**
    - Verify `VITE_API_URL` is set correctly
    - Check CORS configuration in backend
    - Ensure backend domain is accessible
 
-4. **GitHub Actions Failing**
+7. **GitHub Actions Failing**
    - Verify `RAILWAY_TOKEN` secret is set correctly
    - Check token has not expired
    - Verify service names match in Railway dashboard
+   - Ensure GitHub repository is connected in Railway project settings
 
 ### Health Checks
 

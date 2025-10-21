@@ -53,14 +53,12 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          cd backend
           railway up --service backend --detach
 
       - name: Run Database Migrations
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          cd backend
           # Uncomment when migrations are set up
           # railway run --service backend alembic upgrade head
         continue-on-error: true
