@@ -93,13 +93,23 @@ SECRET_KEY=<generate-a-secure-random-key>
 
 #### Frontend Environment Variables
 
-Add the following environment variables to the frontend service:
+**IMPORTANT:** The frontend needs to know the backend URL at build time.
+
+Add the following environment variable to the frontend service:
 
 ```bash
 VITE_API_URL=https://<your-backend-service>.railway.app
 ```
 
-Replace `<your-backend-service>` with your actual backend Railway URL (you'll get this after backend deploys).
+Replace `<your-backend-service>` with your actual backend Railway URL.
+
+**How to find your backend URL:**
+1. Go to backend service in Railway
+2. Click Settings → Generate Domain (if not already done)
+3. Copy the generated URL (e.g., `https://polito-log-backend-production-xxxx.up.railway.app`)
+4. Set this as `VITE_API_URL` in frontend service
+
+**Note:** Vite bakes environment variables into the build at build time. If you change `VITE_API_URL`, you must redeploy the frontend for changes to take effect.
 
 ### 5. Configure GitHub Actions Secrets
 
@@ -114,10 +124,11 @@ Add the following secrets:
    - Copy the token and add it as a GitHub secret
    - This token allows GitHub Actions to deploy to Railway
 
-2. **VITE_API_URL** (optional)
+2. **VITE_API_URL** (recommended for GitHub Actions)
    - The URL of your backend service
    - Example: `https://polito-log-backend.up.railway.app`
-   - If not set, the workflow will use a default value
+   - Used during `npm run build` in GitHub Actions
+   - Also set this in Railway dashboard for Railway-triggered deployments
 
 ### 6. Set Up Railway Services for CI/CD
 
@@ -406,6 +417,22 @@ Use this checklist to ensure everything is configured:
 - [ ] API documentation accessible
 - [ ] Health checks passing
 
+## Local Development Setup
+
+For local development, create a `.env` file in the frontend directory:
+
+```bash
+# frontend/.env
+VITE_API_URL=http://localhost:8000
+```
+
+This file is gitignored. The `.env.example` file serves as a template.
+
+**How it works:**
+- Local dev: Uses `VITE_API_URL` from `.env` file or defaults to `http://localhost:8000`
+- Production: Uses `VITE_API_URL` environment variable set in Railway dashboard
+- The API client configuration happens in `frontend/src/main.ts`
+
 ## Additional Configuration Files
 
 The following files have been created for Railway deployment:
@@ -416,3 +443,6 @@ The following files have been created for Railway deployment:
 - `frontend/railway.json` - Frontend Railway configuration
 - `frontend/Dockerfile` - Frontend containerization
 - `frontend/nginx.conf` - Nginx configuration for serving static files
+- `frontend/docker-entrypoint.sh` - Script to configure nginx with Railway PORT
+- `frontend/.env.example` - Template for environment variables
+- `frontend/.env.production` - Production environment defaults
