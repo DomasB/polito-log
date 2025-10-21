@@ -242,7 +242,9 @@ Access these from each service's "Metrics" tab.
 
 1. **"Service Unavailable" or Health Check Failures**
    - Cause: Port mismatch - application not listening on Railway's assigned PORT
-   - Solution: Ensure Dockerfile CMD uses `${PORT:-8000}` instead of hardcoded port
+   - Solution: Ensure application uses `${PORT}` environment variable
+   - **Backend**: Dockerfile CMD uses `${PORT:-8000}`
+   - **Frontend**: Use entrypoint script with `envsubst` to replace PORT in nginx config
    - Railway assigns random ports via `$PORT` environment variable
    - The application MUST listen on the port specified by `$PORT`
    - Check deployment logs to see what port Railway expects vs. what your app uses
@@ -315,6 +317,12 @@ Railway dynamically assigns ports to services. Your application MUST:
    - Use shell form CMD to interpolate environment variables
    - Example: `CMD uvicorn app:app --port ${PORT:-8000}`
    - NOT: `CMD ["uvicorn", "app:app", "--port", "8000"]` (array form can't interpolate)
+
+4. **Nginx/Frontend PORT Configuration:**
+   - Nginx cannot directly use environment variables in config
+   - Solution: Use entrypoint script with `envsubst` to replace `${PORT}` placeholder
+   - The frontend uses `/docker-entrypoint.sh` to substitute PORT at runtime
+   - nginx.conf template has `listen ${PORT};` which gets replaced with actual port
 
 ## Security Considerations
 
