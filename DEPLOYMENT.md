@@ -109,7 +109,11 @@ Replace `<your-backend-service>` with your actual backend Railway URL.
 3. Copy the generated URL (e.g., `https://polito-log-backend-production-xxxx.up.railway.app`)
 4. Set this as `VITE_API_URL` in frontend service
 
-**Note:** Vite bakes environment variables into the build at build time. If you change `VITE_API_URL`, you must redeploy the frontend for changes to take effect.
+**Important Notes:**
+- Vite bakes environment variables into the build at build time
+- If you change `VITE_API_URL`, you must redeploy the frontend for changes to take effect
+- Railway automatically passes environment variables as Docker build arguments
+- The Dockerfile uses `ARG` and `ENV` to make `VITE_API_URL` available during the build
 
 ### 5. Configure GitHub Actions Secrets
 
@@ -282,22 +286,28 @@ Access these from each service's "Metrics" tab.
    - Correct: `COPY app ./app` (from backend/ directory)
    - Incorrect: `COPY backend/app ./app` (looking for backend/backend/app)
 
-6. **Build Failures**
+6. **Frontend Still Using Localhost After Setting VITE_API_URL**
+   - Cause: Environment variable not passed to Docker build stage
+   - Solution: Dockerfile must declare `ARG VITE_API_URL` before build
+   - Verify: Check Railway build logs for "VITE_API_URL" being set
+   - Always redeploy after changing environment variables
+
+7. **Build Failures**
    - Check Railway build logs for errors
    - Verify Dockerfile paths are correct in railway.json
    - Ensure all dependencies are in requirements.txt/package.json
 
-7. **Database Connection Errors**
+8. **Database Connection Errors**
    - Verify `DATABASE_URL` is correctly linked to Postgres service
    - Check database service is running
    - Verify network connectivity between services
 
-8. **Frontend Can't Connect to Backend**
+9. **Frontend Can't Connect to Backend**
    - Verify `VITE_API_URL` is set correctly
    - Check CORS configuration in backend
    - Ensure backend domain is accessible
 
-9. **GitHub Actions Failing**
+10. **GitHub Actions Failing**
    - Verify `RAILWAY_TOKEN` secret is set correctly
    - Check token has not expired
    - Verify service names match in Railway dashboard

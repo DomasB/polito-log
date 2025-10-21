@@ -5,6 +5,11 @@ FROM node:20-alpine as builder
 
 WORKDIR /app
 
+# Declare build argument for API URL
+# Railway passes environment variables as build args automatically
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
+
 # Copy package files
 COPY package*.json ./
 
@@ -15,7 +20,7 @@ RUN npm ci
 COPY . .
 
 # Build the application
-# Note: VITE_API_URL will be injected at build time via Railway environment variables
+# Vite will replace import.meta.env.VITE_API_URL with the actual value during build
 RUN npm run build
 
 # Stage 2: Serve the static files with nginx
