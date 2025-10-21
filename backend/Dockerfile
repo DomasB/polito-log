@@ -18,8 +18,8 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-# In monorepo, build context is project root, so we need backend/ prefix
-COPY backend/requirements.txt .
+# Build context is backend/ directory when Root Directory=/backend in Railway
+COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --upgrade pip && \
@@ -50,8 +50,8 @@ RUN useradd -m -u 1000 appuser
 # Copy Python dependencies from builder and set ownership
 COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 
-# Copy application code from backend directory
-COPY --chown=appuser:appuser backend/app ./app
+# Copy application code (relative to backend/ directory)
+COPY --chown=appuser:appuser app ./app
 
 # Switch to non-root user
 USER appuser

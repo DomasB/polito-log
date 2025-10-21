@@ -37,14 +37,15 @@ The deployment consists of three Railway services:
 3. Railway will detect it as a monorepo
 4. Configure the service:
    - **Service Name**: `backend`
-   - **Root Directory**: Leave empty (uses project root, configured in railway.json)
+   - **Root Directory**: Set to `/backend`
    - Click "Deploy"
 
 5. After initial deployment, verify configuration:
+   - Go to service Settings → General
+   - Verify "Root Directory" is set to `/backend`
    - Go to service Settings → Build
-   - Verify "Dockerfile Path" shows `backend/Dockerfile`
-   - Verify "Watch Paths" shows `backend/**`
-   - These are configured automatically from `backend/railway.json`
+   - Verify "Dockerfile Path" shows `Dockerfile` (relative to root directory)
+   - Railway will build from the `/backend` directory
 
 #### Backend Environment Variables
 
@@ -80,14 +81,15 @@ SECRET_KEY=<generate-a-secure-random-key>
 2. Select your `polito-log` repository again
 3. Configure the service:
    - **Service Name**: `frontend`
-   - **Root Directory**: Leave empty (uses project root, configured in railway.json)
+   - **Root Directory**: Set to `/frontend`
    - Click "Deploy"
 
 4. After initial deployment, verify configuration:
+   - Go to service Settings → General
+   - Verify "Root Directory" is set to `/frontend`
    - Go to service Settings → Build
-   - Verify "Dockerfile Path" shows `frontend/Dockerfile`
-   - Verify "Watch Paths" shows `frontend/**`
-   - These are configured automatically from `frontend/railway.json`
+   - Verify "Dockerfile Path" shows `Dockerfile` (relative to root directory)
+   - Railway will build from the `/frontend` directory
 
 #### Frontend Environment Variables
 
@@ -136,9 +138,10 @@ For GitHub Actions to work correctly:
    - The GitHub Actions workflows reference these service names
 
 3. **Important - Monorepo Configuration:**
-   - Both services should have empty Root Directory in Railway dashboard
-   - The `railway.json` files handle the monorepo structure
-   - Railway will build from project root and use paths specified in railway.json
+   - Backend service should have Root Directory set to `/backend`
+   - Frontend service should have Root Directory set to `/frontend`
+   - This tells Railway which subdirectory to build from
+   - Dockerfiles use relative paths from their respective directories
 
 ### 7. Configure Service Domains
 
@@ -245,9 +248,9 @@ Access these from each service's "Metrics" tab.
    - Check deployment logs to see what port Railway expects vs. what your app uses
 
 2. **"Could not find Dockerfile" Error**
-   - Cause: Root directory misconfigured in Railway dashboard
-   - Solution: Set Root Directory to empty/blank in service Settings
-   - Verify `railway.json` has correct `dockerfilePath` (e.g., `backend/Dockerfile`)
+   - Cause: Root directory not set correctly in Railway dashboard
+   - Solution: Set Root Directory to `/backend` for backend, `/frontend` for frontend
+   - Verify railway.json has `dockerfilePath: "Dockerfile"` (relative to root directory)
 
 3. **"Could not find root directory: /backend" Error (GitHub Actions)**
    - Cause: GitHub Actions workflow running from subdirectory
@@ -256,13 +259,15 @@ Access these from each service's "Metrics" tab.
 
 4. **Monorepo Detection Issues**
    - Cause: Railway not recognizing monorepo structure
-   - Solution: Ensure `watchPatterns` are set in railway.json files
-   - Verify Railway dashboard shows correct Watch Paths in Settings → Build
+   - Solution: Set Root Directory correctly for each service
+   - Backend: Root Directory = `/backend`
+   - Frontend: Root Directory = `/frontend`
 
-5. **Dockerfile COPY Errors in Monorepo**
-   - Cause: Dockerfile paths don't account for build context being project root
-   - Solution: Use `backend/` or `frontend/` prefix in COPY commands
-   - Example: `COPY backend/requirements.txt .` instead of `COPY requirements.txt .`
+5. **Dockerfile COPY Errors in Monorepo** (e.g., "/backend/app: not found")
+   - Cause: Dockerfile paths don't match Root Directory setting
+   - Solution: When Root Directory is `/backend`, use relative paths in Dockerfile
+   - Correct: `COPY app ./app` (from backend/ directory)
+   - Incorrect: `COPY backend/app ./app` (looking for backend/backend/app)
 
 6. **Build Failures**
    - Check Railway build logs for errors
@@ -377,7 +382,9 @@ Use this checklist to ensure everything is configured:
 - [ ] Railway project created
 - [ ] PostgreSQL database provisioned
 - [ ] Backend service created and configured
+- [ ] Backend Root Directory set to `/backend`
 - [ ] Frontend service created and configured
+- [ ] Frontend Root Directory set to `/frontend`
 - [ ] Backend environment variables set (DATABASE_URL, ENVIRONMENT, DEBUG, PORT)
 - [ ] Frontend environment variable set (VITE_API_URL)
 - [ ] Database linked to backend service
