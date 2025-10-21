@@ -237,37 +237,49 @@ Access these from each service's "Metrics" tab.
 
 ### Common Issues
 
-1. **"Could not find Dockerfile" Error**
+1. **"Service Unavailable" or Health Check Failures**
+   - Cause: Port mismatch - application not listening on Railway's assigned PORT
+   - Solution: Ensure Dockerfile CMD uses `${PORT:-8000}` instead of hardcoded port
+   - Railway assigns random ports via `$PORT` environment variable
+   - The application MUST listen on the port specified by `$PORT`
+   - Check deployment logs to see what port Railway expects vs. what your app uses
+
+2. **"Could not find Dockerfile" Error**
    - Cause: Root directory misconfigured in Railway dashboard
    - Solution: Set Root Directory to empty/blank in service Settings
    - Verify `railway.json` has correct `dockerfilePath` (e.g., `backend/Dockerfile`)
 
-2. **"Could not find root directory: /backend" Error (GitHub Actions)**
+3. **"Could not find root directory: /backend" Error (GitHub Actions)**
    - Cause: GitHub Actions workflow running from subdirectory
    - Solution: Already fixed in workflows - `railway up` runs from project root
    - Verify you're using the updated workflow files
 
-3. **Monorepo Detection Issues**
+4. **Monorepo Detection Issues**
    - Cause: Railway not recognizing monorepo structure
    - Solution: Ensure `watchPatterns` are set in railway.json files
    - Verify Railway dashboard shows correct Watch Paths in Settings → Build
 
-4. **Build Failures**
+5. **Dockerfile COPY Errors in Monorepo**
+   - Cause: Dockerfile paths don't account for build context being project root
+   - Solution: Use `backend/` or `frontend/` prefix in COPY commands
+   - Example: `COPY backend/requirements.txt .` instead of `COPY requirements.txt .`
+
+6. **Build Failures**
    - Check Railway build logs for errors
    - Verify Dockerfile paths are correct in railway.json
    - Ensure all dependencies are in requirements.txt/package.json
 
-5. **Database Connection Errors**
+7. **Database Connection Errors**
    - Verify `DATABASE_URL` is correctly linked to Postgres service
    - Check database service is running
    - Verify network connectivity between services
 
-6. **Frontend Can't Connect to Backend**
+8. **Frontend Can't Connect to Backend**
    - Verify `VITE_API_URL` is set correctly
    - Check CORS configuration in backend
    - Ensure backend domain is accessible
 
-7. **GitHub Actions Failing**
+9. **GitHub Actions Failing**
    - Verify `RAILWAY_TOKEN` secret is set correctly
    - Check token has not expired
    - Verify service names match in Railway dashboard
@@ -278,6 +290,26 @@ Access these from each service's "Metrics" tab.
 - **Backend**: `https://<backend-url>/` - Should return API info
 - **Frontend**: `https://<frontend-url>/health` - Should return "healthy"
 - **API Docs**: `https://<backend-url>/api/v1/docs` - Swagger UI
+
+## Important: Railway PORT Configuration
+
+Railway dynamically assigns ports to services. Your application MUST:
+
+1. **Listen on Railway's PORT variable:**
+   - Railway injects a `$PORT` environment variable
+   - Your app must bind to this port, not a hardcoded port
+   - Backend uses: `uvicorn --port ${PORT:-8000}`
+   - The `:-8000` provides a fallback for local development
+
+2. **Why This Matters:**
+   - Railway's health checks probe the assigned PORT
+   - If your app listens on a different port, health checks fail
+   - This causes "Service Unavailable" errors during deployment
+
+3. **Dockerfile Configuration:**
+   - Use shell form CMD to interpolate environment variables
+   - Example: `CMD uvicorn app:app --port ${PORT:-8000}`
+   - NOT: `CMD ["uvicorn", "app:app", "--port", "8000"]` (array form can't interpolate)
 
 ## Security Considerations
 

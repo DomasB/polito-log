@@ -18,7 +18,8 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+# In monorepo, build context is project root, so we need backend/ prefix
+COPY backend/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --upgrade pip && \
@@ -40,6 +41,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     postgresql-client \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
@@ -48,18 +50,19 @@ RUN useradd -m -u 1000 appuser
 # Copy Python dependencies from builder and set ownership
 COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 
-# Copy application code
-COPY --chown=appuser:appuser ./app ./app
+# Copy application code from backend directory
+COPY --chown=appuser:appuser backend/app ./app
 
 # Switch to non-root user
 USER appuser
 
-# Expose port
-EXPOSE 8000
+# Expose port (Railway will provide PORT env variable)
+EXPOSE ${PORT:-8000}
 
-# Health check
+# Health check - uses PORT env variable, defaults to 8000 for local dev
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/')" || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/ || exit 1
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application using Railway's PORT variable
+# Railway injects PORT at runtime, so we use shell form to interpolate it
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
