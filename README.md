@@ -31,6 +31,6 @@ CI/CD
 - Railway
 
 ## Contributing
-All contributions are welcome. Please read [[CONTRIBUTING]] on how you can help.
+All contributions are welcome. Please read [CONTRIBUTING](CONTRIBUTING.md) on how you can help.
 
 
