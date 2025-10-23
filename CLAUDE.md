@@ -120,8 +120,8 @@ Backend:
  - SQLAlchemy (ORM)
  - Pydantic (validation)
  - PostgreSQL (primary database)
+ - Magic link based passwordless log-in
  - Elasticsearch (search engine - planned)
- - Google Auth (authentication - planned)
 
 Backend Architecture Pattern:
  - Clean Architecture with layered approach

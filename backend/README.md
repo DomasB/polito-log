@@ -9,7 +9,6 @@ Backend API for the Polito-Log political accountability tracking system.
 - **ORM**: SQLAlchemy
 - **Validation**: Pydantic
 - **Search**: Elasticsearch (planned)
-- **Auth**: Google Auth (planned)
 
 ## Architecture
 

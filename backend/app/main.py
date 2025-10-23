@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import statement_router
+from app.routers import statement_router, auth_router
 from app.database import Base, engine
 
 
@@ -22,6 +22,34 @@ def create_application() -> FastAPI:
         openapi_url=f"{settings.API_V1_PREFIX}/openapi.json"
     )
 
+    # Configure OpenAPI security scheme
+    def custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+
+        from fastapi.openapi.utils import get_openapi
+        openapi_schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            description=app.description,
+            routes=app.routes,
+        )
+
+        # Add Bearer token security scheme
+        openapi_schema["components"]["securitySchemes"] = {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "Enter your JWT token obtained from the authentication endpoint"
+            }
+        }
+
+        app.openapi_schema = openapi_schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi
+
     # Configure CORS
     app.add_middleware(
         CORSMiddleware,
@@ -33,6 +61,7 @@ def create_application() -> FastAPI:
 
     # Include routers
     app.include_router(statement_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
 
     return app
 
@@ -69,7 +98,7 @@ def api_health_check() -> dict:
         API information
     """
     return {
-        "message": "Polito-Log API is running",
+        "message": "Polito Log API is running",
         "version": settings.VERSION,
         "docs": f"{settings.API_V1_PREFIX}/docs"
     }
