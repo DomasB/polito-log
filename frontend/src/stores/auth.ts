@@ -78,7 +78,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await getCurrentUserProfileApiV1AuthMeGet({
         headers: {
-          authorization: sessionToken.value ? `Bearer ${sessionToken.value}` : undefined,
+          authorization: `Bearer ${sessionToken.value}`,
         },
       })
 
