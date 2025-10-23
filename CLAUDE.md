@@ -136,6 +136,3 @@ Backend Architecture Pattern:
 CI/CD:
  - Github Actions
  - Railway
-
-  Ok, I have removed some non essential properties from the user. Remember that we are privacy focused, we don't want to collect mroe data than needed.\
-  Now let's implement frontend. Implement minimal login page with nativeUI. Add session logic. Do not add any navigation guards for now.

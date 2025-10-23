@@ -54,7 +54,7 @@ class UserRepository(BaseRepository[User]):
         """
         return (
             self.db.query(User)
-            .filter(User.is_active == True)
+            .filter(User.is_active)
             .offset(skip)
             .limit(limit)
             .all()
