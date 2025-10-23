@@ -15,6 +15,40 @@ export type HttpValidationError = {
 };
 
 /**
+ * MagicLinkRequest
+ *
+ * Schema for requesting a magic link.
+ */
+export type MagicLinkRequest = {
+    /**
+     * Email
+     *
+     * Email address to send magic link to
+     */
+    email: string;
+};
+
+/**
+ * MagicLinkResponse
+ *
+ * Schema for magic link request response.
+ */
+export type MagicLinkResponse = {
+    /**
+     * Message
+     *
+     * Response message
+     */
+    message: string;
+    /**
+     * Email
+     *
+     * Email address the link was sent to
+     */
+    email: string;
+};
+
+/**
  * StatementCreate
  *
  * Schema for creating a new statement.
@@ -171,6 +205,110 @@ export type StatementUpdate = {
 };
 
 /**
+ * TokenResponse
+ *
+ * Schema for authentication token response.
+ */
+export type TokenResponse = {
+    /**
+     * Access Token
+     *
+     * JWT access token
+     */
+    access_token: string;
+    /**
+     * Token Type
+     *
+     * Token type
+     */
+    token_type?: string;
+    /**
+     * Expires At
+     *
+     * Token expiration time
+     */
+    expires_at: string;
+    /**
+     * User
+     *
+     * User information
+     */
+    user: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * TokenVerify
+ *
+ * Schema for verifying a magic link token.
+ */
+export type TokenVerify = {
+    /**
+     * Token
+     *
+     * Magic link token to verify
+     */
+    token: string;
+};
+
+/**
+ * UserResponse
+ *
+ * Schema for user API responses.
+ */
+export type UserResponse = {
+    /**
+     * Email
+     *
+     * User's email address
+     */
+    email: string;
+    /**
+     * Username
+     *
+     * Unique username
+     */
+    username: string;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Is Active
+     */
+    is_active: boolean;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * UserUpdate
+ *
+ * Schema for updating an existing user. All fields are optional.
+ */
+export type UserUpdate = {
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Username
+     */
+    username?: string | null;
+    /**
+     * Is Active
+     */
+    is_active?: boolean | null;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -243,6 +381,10 @@ export type CreateStatementApiV1StatementsPostData = {
 
 export type CreateStatementApiV1StatementsPostErrors = {
     /**
+     * Not authenticated
+     */
+    401: unknown;
+    /**
      * Validation Error
      */
     422: HttpValidationError;
@@ -279,6 +421,14 @@ export type DeleteStatementApiV1StatementsStatementIdDeleteData = {
 };
 
 export type DeleteStatementApiV1StatementsStatementIdDeleteErrors = {
+    /**
+     * Not authenticated
+     */
+    401: unknown;
+    /**
+     * Statement not found
+     */
+    404: unknown;
     /**
      * Validation Error
      */
@@ -339,6 +489,14 @@ export type UpdateStatementApiV1StatementsStatementIdPutData = {
 };
 
 export type UpdateStatementApiV1StatementsStatementIdPutErrors = {
+    /**
+     * Not authenticated
+     */
+    401: unknown;
+    /**
+     * Statement not found
+     */
+    404: unknown;
     /**
      * Validation Error
      */
@@ -517,6 +675,97 @@ export type SearchStatementsApiV1StatementsSearchGetResponses = {
 };
 
 export type SearchStatementsApiV1StatementsSearchGetResponse = SearchStatementsApiV1StatementsSearchGetResponses[keyof SearchStatementsApiV1StatementsSearchGetResponses];
+
+export type RequestMagicLinkApiV1AuthMagicLinkPostData = {
+    body: MagicLinkRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/magic-link';
+};
+
+export type RequestMagicLinkApiV1AuthMagicLinkPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RequestMagicLinkApiV1AuthMagicLinkPostError = RequestMagicLinkApiV1AuthMagicLinkPostErrors[keyof RequestMagicLinkApiV1AuthMagicLinkPostErrors];
+
+export type RequestMagicLinkApiV1AuthMagicLinkPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: MagicLinkResponse;
+};
+
+export type RequestMagicLinkApiV1AuthMagicLinkPostResponse = RequestMagicLinkApiV1AuthMagicLinkPostResponses[keyof RequestMagicLinkApiV1AuthMagicLinkPostResponses];
+
+export type VerifyMagicLinkApiV1AuthVerifyPostData = {
+    body: TokenVerify;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/verify';
+};
+
+export type VerifyMagicLinkApiV1AuthVerifyPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type VerifyMagicLinkApiV1AuthVerifyPostError = VerifyMagicLinkApiV1AuthVerifyPostErrors[keyof VerifyMagicLinkApiV1AuthVerifyPostErrors];
+
+export type VerifyMagicLinkApiV1AuthVerifyPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: TokenResponse;
+};
+
+export type VerifyMagicLinkApiV1AuthVerifyPostResponse = VerifyMagicLinkApiV1AuthVerifyPostResponses[keyof VerifyMagicLinkApiV1AuthVerifyPostResponses];
+
+export type GetCurrentUserProfileApiV1AuthMeGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me';
+};
+
+export type GetCurrentUserProfileApiV1AuthMeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserResponse;
+};
+
+export type GetCurrentUserProfileApiV1AuthMeGetResponse = GetCurrentUserProfileApiV1AuthMeGetResponses[keyof GetCurrentUserProfileApiV1AuthMeGetResponses];
+
+export type UpdateCurrentUserProfileApiV1AuthMePutData = {
+    body: UserUpdate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me';
+};
+
+export type UpdateCurrentUserProfileApiV1AuthMePutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateCurrentUserProfileApiV1AuthMePutError = UpdateCurrentUserProfileApiV1AuthMePutErrors[keyof UpdateCurrentUserProfileApiV1AuthMePutErrors];
+
+export type UpdateCurrentUserProfileApiV1AuthMePutResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserResponse;
+};
+
+export type UpdateCurrentUserProfileApiV1AuthMePutResponse = UpdateCurrentUserProfileApiV1AuthMePutResponses[keyof UpdateCurrentUserProfileApiV1AuthMePutResponses];
 
 export type HealthCheckGetData = {
     body?: never;

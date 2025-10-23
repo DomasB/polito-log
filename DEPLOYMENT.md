@@ -59,19 +59,6 @@ DEBUG=False
 PORT=8000
 ```
 
-**Optional (for future features):**
-```bash
-# Google OAuth (when implemented)
-GOOGLE_CLIENT_ID=<your-google-client-id>
-GOOGLE_CLIENT_SECRET=<your-google-client-secret>
-
-# CORS origins (comma-separated)
-ALLOWED_ORIGINS=https://your-frontend-domain.railway.app
-
-# Secret key for JWT tokens (when implemented)
-SECRET_KEY=<generate-a-secure-random-key>
-```
-
 **To link database:**
 - In Railway dashboard, the `${{Postgres.DATABASE_URL}}` variable reference will automatically connect to your PostgreSQL service
 

@@ -153,6 +153,16 @@ main() {
     # Initialize USE_SUDO variable
     USE_SUDO=""
 
+    # Check if Docker daemon is running
+    if check_docker_daemon; then
+        echo -e "${GREEN}✓ Docker daemon is running${NC}"
+    else
+        if ! start_docker_daemon; then
+            echo -e "${RED}✗ Cannot proceed without Docker daemon${NC}"
+            exit 1
+        fi
+    fi
+
     # Check Docker permissions first
     if ! check_docker_permissions; then
         echo -e "${RED}✗ Cannot access Docker${NC}"
@@ -166,15 +176,6 @@ main() {
         echo -e "${GREEN}✓ Docker permissions OK${NC}"
     fi
 
-    # Check if Docker daemon is running
-    if check_docker_daemon; then
-        echo -e "${GREEN}✓ Docker daemon is running${NC}"
-    else
-        if ! start_docker_daemon; then
-            echo -e "${RED}✗ Cannot proceed without Docker daemon${NC}"
-            exit 1
-        fi
-    fi
 
     # Check if docker-compose is installed
     if ! check_docker_compose; then
