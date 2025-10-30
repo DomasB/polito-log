@@ -208,6 +208,30 @@ main() {
             echo -e "${YELLOW}Stop services:${NC} ./dev.sh down"
             ;;
 
+        debug)
+            echo -e "${BLUE}→ Starting services in DEBUG mode...${NC}"
+            echo -e "${YELLOW}⚠ Debugger will wait for VSCode to attach on port 5678${NC}"
+            $COMPOSE_CMD -f docker-compose.yml -f docker-compose.debug.yml up -d $EXTRA_ARGS
+            echo ""
+            echo -e "${GREEN}✓ Services started in debug mode!${NC}"
+            echo ""
+            echo -e "${BLUE}Access points:${NC}"
+            echo -e "  • Backend API:  ${GREEN}http://localhost:8000${NC}"
+            echo -e "  • Swagger UI:   ${GREEN}http://localhost:8000/api/v1/docs${NC}"
+            echo -e "  • ReDoc:        ${GREEN}http://localhost:8000/api/v1/redoc${NC}"
+            echo -e "  • PostgreSQL:   ${GREEN}localhost:5432${NC}"
+            echo -e "  • Debug Port:   ${GREEN}localhost:5678${NC}"
+            echo ""
+            echo -e "${BLUE}Next steps:${NC}"
+            echo -e "  1. Open VSCode and set breakpoints in your code"
+            echo -e "  2. Go to Run and Debug (Ctrl+Shift+D)"
+            echo -e "  3. Select 'Python: Remote Attach (Docker)'"
+            echo -e "  4. Press F5 to attach debugger"
+            echo ""
+            echo -e "${YELLOW}View logs:${NC} $COMPOSE_CMD logs -f backend"
+            echo -e "${YELLOW}Stop services:${NC} ./dev.sh down"
+            ;;
+
         down|stop)
             echo -e "${BLUE}→ Stopping services...${NC}"
             $COMPOSE_CMD down $EXTRA_ARGS
@@ -267,6 +291,7 @@ main() {
             echo ""
             echo -e "${BLUE}Commands:${NC}"
             echo -e "  ${GREEN}up, start${NC}      Start all services (default)"
+            echo -e "  ${GREEN}debug${NC}          Start services in DEBUG mode (with VSCode debugger)"
             echo -e "  ${GREEN}down, stop${NC}     Stop all services"
             echo -e "  ${GREEN}restart${NC}        Restart all services"
             echo -e "  ${GREEN}logs${NC}           View logs (default: backend)"
@@ -279,6 +304,7 @@ main() {
             echo ""
             echo -e "${BLUE}Examples:${NC}"
             echo -e "  ./dev.sh                    # Start services"
+            echo -e "  ./dev.sh debug              # Start with debugging enabled"
             echo -e "  ./dev.sh up --profile tools # Start with pgAdmin"
             echo -e "  ./dev.sh logs               # View backend logs"
             echo -e "  ./dev.sh logs db            # View database logs"

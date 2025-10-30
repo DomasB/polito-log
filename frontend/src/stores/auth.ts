@@ -76,11 +76,8 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const response = await getCurrentUserProfileApiV1AuthMeGet({
-        headers: {
-          authorization: `Bearer ${sessionToken.value}`,
-        },
-      })
+      // Authorization header is now automatically added by the API client interceptor
+      const response = await getCurrentUserProfileApiV1AuthMeGet()
 
       if (response.data) {
         user.value = response.data

@@ -42,9 +42,11 @@ app/
 - Docker
 - Docker Compose
 
-#### Quick Start with dev.sh Script
+#### Quick Start with Development Scripts
 
-The easiest way to get started is using the `dev.sh` script, which automatically handles Docker daemon startup and service management:
+The easiest way to get started is using the development scripts, which automatically handle Docker daemon/Desktop startup and service management.
+
+**Linux/Mac (using dev.sh):**
 
 ```bash
 # Make script executable (first time only)
@@ -55,6 +57,9 @@ chmod +x dev.sh
 
 # Or explicitly start
 ./dev.sh up
+
+# Start in DEBUG mode (for VSCode debugging)
+./dev.sh debug
 
 # View logs
 ./dev.sh logs
@@ -73,6 +78,37 @@ chmod +x dev.sh
 
 # View all available commands
 ./dev.sh help
+```
+
+**Windows (using dev.cmd):**
+
+```cmd
+# Start all services
+dev.cmd
+
+# Or explicitly start
+dev.cmd up
+
+# Start in DEBUG mode (for VSCode debugging)
+dev.cmd debug
+
+# View logs
+dev.cmd logs
+
+# Stop services
+dev.cmd down
+
+# Restart services
+dev.cmd restart
+
+# Rebuild and restart
+dev.cmd rebuild
+
+# Open shell in backend container
+dev.cmd shell
+
+# View all available commands
+dev.cmd help
 ```
 
 #### Manual Docker Commands
@@ -101,20 +137,32 @@ docker-compose down -v
 
 #### With pgAdmin (Database Management Tool)
 
+**Linux/Mac:**
 ```bash
 # Using dev.sh
 ./dev.sh up --profile tools
 
 # Or manually
 docker-compose --profile tools up -d
-
-# Access pgAdmin at http://localhost:5050
-# Email: admin@polito-log.com
-# Password: admin
 ```
 
-#### Additional dev.sh Commands
+**Windows:**
+```cmd
+# Using dev.cmd
+dev.cmd up --profile tools
 
+# Or manually
+docker-compose --profile tools up -d
+```
+
+**Access pgAdmin:**
+- URL: http://localhost:5050
+- Email: admin@polito-log.com
+- Password: admin
+
+#### Additional Development Script Commands
+
+**Linux/Mac:**
 ```bash
 # Start with pgAdmin
 ./dev.sh up --profile tools
@@ -133,6 +181,27 @@ docker-compose --profile tools up -d
 
 # Rebuild specific service
 ./dev.sh build backend
+```
+
+**Windows:**
+```cmd
+# Start with pgAdmin
+dev.cmd up --profile tools
+
+# View database logs
+dev.cmd logs db
+
+# View all running containers
+dev.cmd ps
+
+# Clean up everything (removes data!)
+dev.cmd clean
+
+# Open shell in specific container
+dev.cmd shell db
+
+# Rebuild specific service
+dev.cmd build backend
 ```
 
 ### Option 2: Local Installation
@@ -224,6 +293,24 @@ Once the server is running, visit:
 | updated_at | DateTime | Last update timestamp |
 
 ## Development
+
+### Debugging with VSCode
+
+The backend supports full debugging with VSCode and Docker:
+
+**Quick Start:**
+```bash
+./dev.sh debug  # Linux/Mac
+dev.cmd debug   # Windows
+```
+
+Then in VSCode:
+1. Set breakpoints in your code
+2. Go to Run and Debug (Ctrl+Shift+D)
+3. Select "Python: Remote Attach (Docker)"
+4. Press F5 to attach debugger
+
+**See [DEBUG.md](DEBUG.md) for complete debugging guide.**
 
 ### Code Style
 

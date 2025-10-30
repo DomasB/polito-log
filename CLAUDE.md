@@ -21,12 +21,17 @@ Core principles:
 
 #### Option 1: Docker (Recommended)
 
+**Linux/Mac:**
+
 ```bash
 # Navigate to backend directory
 cd backend
 
 # Start all services using dev.sh (handles Docker daemon automatically)
 ./dev.sh
+
+# Start in DEBUG mode (with VSCode debugger support)
+./dev.sh debug
 
 # View logs
 ./dev.sh logs
@@ -48,13 +53,47 @@ cd backend
 
 # View all commands
 ./dev.sh help
-
-# Access services:
-# - Backend API: http://localhost:8000
-# - Swagger UI: http://localhost:8000/api/v1/docs
-# - ReDoc: http://localhost:8000/api/v1/redoc
-# - pgAdmin (if started): http://localhost:5050
 ```
+
+**Windows:**
+
+```cmd
+# Navigate to backend directory
+cd backend
+
+# Start all services using dev.cmd (checks Docker Desktop automatically)
+dev.cmd
+
+# Start in DEBUG mode (with VSCode debugger support)
+dev.cmd debug
+
+# View logs
+dev.cmd logs
+
+# Stop services
+dev.cmd down
+
+# Restart after changes
+dev.cmd restart
+
+# Rebuild and restart
+dev.cmd rebuild
+
+# Start with pgAdmin for database management
+dev.cmd up --profile tools
+
+# Open shell in backend container
+dev.cmd shell
+
+# View all commands
+dev.cmd help
+```
+
+**Access services:**
+- Backend API: http://localhost:8000
+- Swagger UI: http://localhost:8000/api/v1/docs
+- ReDoc: http://localhost:8000/api/v1/redoc
+- pgAdmin (if started): http://localhost:5050
 
 #### Option 2: Local Development
 

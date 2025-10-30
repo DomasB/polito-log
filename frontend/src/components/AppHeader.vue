@@ -47,6 +47,7 @@ function handleLoginClick() {
   <header class="app-header">
     <div class="header-content">
       <div class="logo">
+        <img src="@/assets/logo.png" alt="Polito Log Logo" height="40" />
         <h2>Polito Log</h2>
       </div>
 
@@ -81,18 +82,22 @@ function handleLoginClick() {
 
 <style scoped>
 .app-header {
-  width: 100%;
   background-color: rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
   padding: 12px 24px;
 }
 
 .header-content {
-  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .logo h2 {

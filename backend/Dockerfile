@@ -1,6 +1,9 @@
 # Multi-stage build for optimized production image
 FROM python:3.11-slim as builder
 
+# Build argument for environment (development or production)
+ARG ENVIRONMENT=production
+
 # Set working directory
 WORKDIR /app
 
@@ -20,14 +23,22 @@ RUN apt-get update && \
 # Copy requirements first for better caching
 # Build context is backend/ directory when Root Directory=/backend in Railway
 COPY requirements.txt .
+COPY requirements-dev.txt .
 
 # Install Python dependencies
+# In development, also install dev dependencies (includes debugpy)
 RUN pip install --upgrade pip && \
-    pip install --user --no-warn-script-location -r requirements.txt
+    pip install --user --no-warn-script-location -r requirements.txt && \
+    if [ "$ENVIRONMENT" = "development" ]; then \
+        pip install --user --no-warn-script-location -r requirements-dev.txt; \
+    fi
 
 
 # Final stage
 FROM python:3.11-slim
+
+# Build argument for environment (needs to be redeclared in new stage)
+ARG ENVIRONMENT=production
 
 # Set working directory
 WORKDIR /app
@@ -35,7 +46,8 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH=/home/appuser/.local/bin:$PATH
+    PATH=/home/appuser/.local/bin:$PATH \
+    ENVIRONMENT=${ENVIRONMENT}
 
 # Install runtime dependencies only
 RUN apt-get update && \
@@ -59,10 +71,15 @@ USER appuser
 # Expose port (Railway will provide PORT env variable)
 EXPOSE ${PORT:-8000}
 
+# Expose debugpy port for development only
+# VSCode will connect to this port for remote debugging
+EXPOSE 5678
+
 # Health check - uses PORT env variable, defaults to 8000 for local dev
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/ || exit 1
 
 # Run the application using Railway's PORT variable
 # Railway injects PORT at runtime, so we use shell form to interpolate it
+# Note: In development with debugging, docker-compose.yml overrides this command
 CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}

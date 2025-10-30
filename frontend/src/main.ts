@@ -13,6 +13,19 @@ client.setConfig({
   baseUrl: apiUrl
 })
 
+// Set up request interceptor to automatically inject authorization headers
+client.interceptors.request.use((request) => {
+  // Get token from localStorage (persisted session)
+  const token = localStorage.getItem('session_token')
+
+  if (token) {
+    // Add Authorization header if token exists
+    request.headers.set('Authorization', `Bearer ${token}`)
+  }
+
+  return request
+})
+
 console.log('API configured with base URL:', apiUrl)
 
 const app = createApp(App)
