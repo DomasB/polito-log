@@ -16,6 +16,7 @@ import {
   NTime
 } from 'naive-ui'
 import { useStatements } from '@/composables/useStatements'
+import { useAuthStore } from '@/stores/auth'
 import type { StatementCreate } from '@/api/types.gen'
 
 const {
@@ -28,7 +29,7 @@ const {
   searchStatements,
   clearError
 } = useStatements()
-
+const authStore = useAuthStore()
 const searchQuery = ref('')
 
 // Fetch statements on component mount
@@ -89,7 +90,11 @@ function getStatusType(status?: string) {
 
     <!-- Actions -->
     <NSpace>
-      <NButton type="primary" @click="handleCreateStatement">
+      <NButton
+        v-if="authStore.isAuthenticated"
+        type="primary" 
+        @click="handleCreateStatement"
+      >
         Create Example Statement
       </NButton>
       <NInput
