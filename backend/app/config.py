@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     MAGIC_LINK_EXPIRE_MINUTES: int = 15  # Magic links expire in 15 minutes
     FRONTEND_URL: str = "http://localhost:5173"  # Frontend URL for magic links
 
+    # Email Settings
+    BREVO_API_KEY: Optional[str] = None  # Brevo (Sendinblue) API key for production emails
+    BREVO_SENDER_EMAIL: str = "noreply@polito-log.lt"  # Sender email address
+    BREVO_SENDER_NAME: str = "Polito-Log"  # Sender name
+
     class Config:
         env_file = ".env"
         case_sensitive = True
