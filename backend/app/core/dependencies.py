@@ -7,7 +7,7 @@ from app.database import get_db
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.core.security import decode_access_token
-from app.core.email import EmailSender, ConsoleEmailSender
+from app.core.email import EmailSender, get_email_sender as get_email_sender_factory
 
 # Security scheme for OpenAPI documentation
 bearer_scheme = HTTPBearer(
@@ -19,10 +19,10 @@ bearer_scheme = HTTPBearer(
 async def get_email_sender() -> EmailSender:
     """
     Dependency for getting email sender instance.
-    Returns ConsoleEmailSender for development.
-    Override this in production with actual email service.
+    Returns ConsoleEmailSender for development, BrevoEmailSender for production.
+    Automatically selects based on ENVIRONMENT and BREVO_API_KEY settings.
     """
-    return ConsoleEmailSender()
+    return get_email_sender_factory()
 
 
 async def get_current_user_optional(
