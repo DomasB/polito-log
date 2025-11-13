@@ -65,6 +65,14 @@ COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 # Copy application code (relative to backend/ directory)
 COPY --chown=appuser:appuser app ./app
 
+# Copy Alembic configuration and migrations
+COPY --chown=appuser:appuser alembic.ini ./alembic.ini
+COPY --chown=appuser:appuser alembic ./alembic
+
+# Copy startup script and make it executable
+COPY start.sh ./start.sh
+RUN chmod +x start.sh && chown appuser:appuser start.sh
+
 # Switch to non-root user
 USER appuser
 
@@ -79,7 +87,8 @@ EXPOSE 5678
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/ || exit 1
 
-# Run the application using Railway's PORT variable
+# Run migrations and start the application
 # Railway injects PORT at runtime, so we use shell form to interpolate it
+# The start.sh script will run alembic migrations before starting uvicorn
 # Note: In development with debugging, docker-compose.yml overrides this command
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ./start.sh
