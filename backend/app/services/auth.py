@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.repositories.user import UserRepository
 from app.repositories.magic_link import MagicLinkRepository
 from app.models.user import User
 from app.models.magic_link import MagicLink
+from app.models.enums import UserRole
 from app.schemas.user import UserCreate
 from app.core.security import generate_magic_link_token, create_access_token
 from app.core.email import EmailSender
@@ -97,6 +99,10 @@ class AuthService:
         user = self.user_repository.get_by_email(magic_link.email)
 
         if not user:
+            # Check if this is the first user
+            user_count = self.db.query(func.count(User.id)).scalar()
+            is_first_user = user_count == 0
+
             # Create new user with email as username initially
             username = magic_link.email.split("@")[0]
             # Ensure username is unique
@@ -109,7 +115,8 @@ class AuthService:
             user = User(
                 email=magic_link.email,
                 username=username,
-                is_active=True
+                is_active=True,
+                role=UserRole.ADMIN if is_first_user else UserRole.DEFAULT
             )
             user = self.user_repository.create(user)
 
