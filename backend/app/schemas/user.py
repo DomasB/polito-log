@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
+from app.models.enums import UserRole
+
 
 class UserBase(BaseModel):
     """Base schema for User with common fields."""
@@ -28,6 +30,7 @@ class UserInDB(UserBase):
 
     id: int
     is_active: bool
+    role: UserRole
     created_at: datetime
     updated_at: datetime
 
@@ -44,5 +47,6 @@ class UserPublic(BaseModel):
 
     id: int
     username: str
+    role: UserRole
 
     model_config = ConfigDict(from_attributes=True)

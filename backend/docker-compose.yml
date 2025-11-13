@@ -40,6 +40,9 @@ services:
     volumes:
       # Mount source code for development (hot reload)
       - ./app:/app/app
+      # Mount alembic for development migrations
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   # pgAdmin (optional - for database management)
