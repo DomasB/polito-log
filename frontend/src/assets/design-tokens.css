@@ -1,0 +1,18 @@
+/**
+ * Polito-log Design System — global font
+ *
+ * Loads DM Sans (the design system's primary sans) from Google Fonts and
+ * applies it as the document font so Naive UI components inherit it. All
+ * other design-system elements (colors, spacing, radii, elevation) come
+ * from Naive UI's dark theme configured in App.vue.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
+
+:root {
+  --font-sans: 'DM Sans', Avenir, Helvetica, Arial, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+}

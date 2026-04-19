@@ -4,6 +4,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { client } from '@/api/client.gen'
+import '@/assets/design-tokens.css'
 
 // Configure API client with environment-specific base URL
 // In development: uses localhost from .env or defaults to localhost:8000
