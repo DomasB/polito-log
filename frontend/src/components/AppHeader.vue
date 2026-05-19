@@ -15,10 +15,23 @@ const userInitial = computed(() => {
   return '?'
 })
 
+const userRole = computed(() => {
+  if (authStore.user?.role) {
+    // Capitalize first letter of role
+    return authStore.user.role.charAt(0).toUpperCase() + authStore.user.role.slice(1)
+  }
+  return ''
+})
+
 const dropdownOptions = computed<DropdownOption[]>(() => [
   {
     label: authStore.user?.email || '',
     key: 'email',
+    disabled: true,
+  },
+  {
+    label: `Role: ${userRole.value}`,
+    key: 'role',
     disabled: true,
   },
   {

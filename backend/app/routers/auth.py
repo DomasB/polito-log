@@ -116,7 +116,8 @@ def verify_magic_link(
         user={
             "id": user.id,
             "email": user.email,
-            "username": user.username
+            "username": user.username,
+            "role": user.role
         }
     )
 
