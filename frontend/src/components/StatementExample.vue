@@ -29,6 +29,8 @@ const {
   clearError
 } = useStatements()
 
+import SmartSearch from './search/ui/SmartSearch.vue'
+
 const searchQuery = ref('')
 
 // Fetch statements on component mount
@@ -92,13 +94,7 @@ function getStatusType(status?: string) {
       <NButton type="primary" @click="handleCreateStatement">
         Create Example Statement
       </NButton>
-      <NInput
-        v-model:value="searchQuery"
-        placeholder="Search statements..."
-        clearable
-        style="width: 300px"
-        @update:value="handleSearch"
-      />
+      <SmartSearch />
     </NSpace>
 
     <!-- Loading State -->
