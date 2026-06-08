@@ -40,8 +40,9 @@ watch(() => props.activeIndex, (newIndex) => {
           <NListItem
             v-for="(item, index) in suggestions"
             :key="index"
+            class="suggestion-item"
             :class="{ 'active-item': index === activeIndex }"
-            @click="emit('select', item)"
+            @pointerdown.prevent="emit('select', item)"
             :ref="el => { if (el) itemRefs[index] = (el as any).$el || el }"
           >
             <NThing content-indented>
@@ -81,5 +82,17 @@ watch(() => props.activeIndex, (newIndex) => {
 /* Dark mode support if needed later, but for now simple override */
 :deep(.n-list-item) {
   padding: 8px 12px;
+}
+
+/* Prevent the tap on a suggestion from being treated as a text-selection
+   gesture on touch devices, and avoid the synthetic click/focus race that
+   stopped selection (and flyout closing) from working on mobile. */
+.suggestion-item {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  cursor: pointer;
 }
 </style>
