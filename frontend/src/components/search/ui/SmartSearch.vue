@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 import { useSearch } from '../core/state'
 import { searchRegistry } from '../core/registry'
 import { StatusPlugin } from '../plugins/filters/StatusPlugin'
@@ -10,18 +10,28 @@ import type { Suggestion } from '../core/types'
 // Register plugins (in a real app, this might happen in main.ts or a plugin loader)
 searchRegistry.register(StatusPlugin)
 
-const { 
-  buffer, 
-  tokens, 
-  suggestions, 
+const emit = defineEmits<{
+  (e: 'search', query: string): void
+}>()
+
+const {
+  buffer,
+  tokens,
+  suggestions,
   activeIndex,
-  addToken, 
-  removeToken, 
+  addToken,
+  removeToken,
   updateSuggestions,
   handleKeyDown: coreHandleKeyDown,
   selectSuggestion: coreSelectSuggestion,
   commit
 } = useSearch()
+
+// Emit the assembled query whenever the committed tokens change (value selected,
+// chip added via typing, or a chip removed) so the consumer can refresh results.
+watch(tokens, () => {
+  emit('search', tokens.value.map(t => t.raw).join(' '))
+}, { deep: true })
 
 const searchInputRef = ref<InstanceType<typeof SearchInput> | null>(null)
 

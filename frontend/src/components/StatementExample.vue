@@ -84,7 +84,7 @@ async function handleSearch(query: string) {
       >
         Create Example Statement
       </NButton>
-      <SmartSearch />
+      <SmartSearch @search="handleSearch" />
     </NSpace>
 
     <!-- Loading State -->
