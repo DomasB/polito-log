@@ -42,7 +42,8 @@ watch(() => props.activeIndex, (newIndex) => {
             :key="index"
             class="suggestion-item"
             :class="{ 'active-item': index === activeIndex }"
-            @pointerdown.prevent="emit('select', item)"
+            @pointerdown.prevent
+            @pointerup="emit('select', item)"
             :ref="el => { if (el) itemRefs[index] = (el as any).$el || el }"
           >
             <NThing content-indented>
