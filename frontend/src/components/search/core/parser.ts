@@ -1,5 +1,6 @@
 import type { SearchToken, TextToken, FilterToken } from './types'
 import { searchRegistry } from './registry'
+import { generateId } from './id'
 
 export class SearchParser {
     parse(input: string): SearchToken[] {
@@ -53,7 +54,7 @@ export class SearchParser {
             const value = match[3]!
 
             if (!key || !opSymbol) return {
-                id: crypto.randomUUID(),
+                id: generateId(),
                 type: 'text',
                 value: raw,
                 raw
@@ -74,7 +75,7 @@ export class SearchParser {
                                 // Validation failed, treat as text? Or invalid token?
                                 // For now, treat as text if invalid.
                                 return {
-                                    id: crypto.randomUUID(),
+                                    id: generateId(),
                                     type: 'text',
                                     value: raw,
                                     raw
@@ -83,7 +84,7 @@ export class SearchParser {
                         }
 
                         return {
-                            id: crypto.randomUUID(),
+                            id: generateId(),
                             type: 'filter',
                             filterKey: key,
                             operator: opSymbol,
@@ -100,7 +101,7 @@ export class SearchParser {
 
         // Fallback to TextToken
         return {
-            id: crypto.randomUUID(),
+            id: generateId(),
             type: 'text',
             value: raw,
             raw

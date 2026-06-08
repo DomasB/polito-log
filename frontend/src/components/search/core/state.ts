@@ -2,6 +2,7 @@ import { ref, computed, watch } from 'vue'
 import type { SearchToken, Suggestion, SearchContext } from './types'
 import { searchParser } from './parser'
 import { searchRegistry } from './registry'
+import { generateId } from './id'
 
 export function useSearch() {
     const query = ref('')
@@ -109,7 +110,7 @@ export function useSearch() {
                 const op = match[2]
                 if (key && op) {
                     addToken({
-                        id: crypto.randomUUID(),
+                        id: generateId(),
                         type: 'filter',
                         filterKey: key,
                         operator: op,
@@ -131,7 +132,7 @@ export function useSearch() {
 
         if (buffer.value.trim()) {
             addToken({
-                id: crypto.randomUUID(),
+                id: generateId(),
                 type: 'text',
                 value: buffer.value,
                 raw: buffer.value
