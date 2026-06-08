@@ -1,0 +1,14 @@
+# Docker Compose override file for debugging
+# Use this with: docker-compose -f docker-compose.yml -f docker-compose.debug.yml up
+# Or use the dev scripts: ./dev.sh debug (Linux/Mac) or dev.cmd debug (Windows)
+
+services:
+  backend:
+    ports:
+      - "8000:8000"
+      # Debug port for VSCode remote debugging
+      - "5678:5678"
+    # Override command to start with debugpy
+    # --wait-for-client makes the server wait for VSCode to attach before starting
+    # Remove --wait-for-client if you want the server to start immediately
+    command: python -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

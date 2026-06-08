@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ApiHealthCheckApiV1GetData, ApiHealthCheckApiV1GetResponses, CreateStatementApiV1StatementsPostData, CreateStatementApiV1StatementsPostErrors, CreateStatementApiV1StatementsPostResponses, DeleteStatementApiV1StatementsStatementIdDeleteData, DeleteStatementApiV1StatementsStatementIdDeleteErrors, DeleteStatementApiV1StatementsStatementIdDeleteResponses, GetStatementApiV1StatementsStatementIdGetData, GetStatementApiV1StatementsStatementIdGetErrors, GetStatementApiV1StatementsStatementIdGetResponses, GetStatementsApiV1StatementsGetData, GetStatementsApiV1StatementsGetErrors, GetStatementsApiV1StatementsGetResponses, GetStatementsByPartyApiV1StatementsPartyPartyGetData, GetStatementsByPartyApiV1StatementsPartyPartyGetErrors, GetStatementsByPartyApiV1StatementsPartyPartyGetResponses, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetData, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetErrors, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetResponses, GetStatementsByStatusApiV1StatementsStatusStatusGetData, GetStatementsByStatusApiV1StatementsStatusStatusGetErrors, GetStatementsByStatusApiV1StatementsStatusStatusGetResponses, HealthCheckGetData, HealthCheckGetResponses, SearchStatementsApiV1StatementsSearchGetData, SearchStatementsApiV1StatementsSearchGetErrors, SearchStatementsApiV1StatementsSearchGetResponses, UpdateStatementApiV1StatementsStatementIdPutData, UpdateStatementApiV1StatementsStatementIdPutErrors, UpdateStatementApiV1StatementsStatementIdPutResponses } from './types.gen';
+import type { ApiHealthCheckApiV1GetData, ApiHealthCheckApiV1GetResponses, CreateStatementApiV1StatementsPostData, CreateStatementApiV1StatementsPostErrors, CreateStatementApiV1StatementsPostResponses, DeleteStatementApiV1StatementsStatementIdDeleteData, DeleteStatementApiV1StatementsStatementIdDeleteErrors, DeleteStatementApiV1StatementsStatementIdDeleteResponses, GetCurrentUserProfileApiV1AuthMeGetData, GetCurrentUserProfileApiV1AuthMeGetResponses, GetStatementApiV1StatementsStatementIdGetData, GetStatementApiV1StatementsStatementIdGetErrors, GetStatementApiV1StatementsStatementIdGetResponses, GetStatementsApiV1StatementsGetData, GetStatementsApiV1StatementsGetErrors, GetStatementsApiV1StatementsGetResponses, GetStatementsByPartyApiV1StatementsPartyPartyGetData, GetStatementsByPartyApiV1StatementsPartyPartyGetErrors, GetStatementsByPartyApiV1StatementsPartyPartyGetResponses, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetData, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetErrors, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetResponses, GetStatementsByStatusApiV1StatementsStatusStatusGetData, GetStatementsByStatusApiV1StatementsStatusStatusGetErrors, GetStatementsByStatusApiV1StatementsStatusStatusGetResponses, HealthCheckGetData, HealthCheckGetResponses, RequestMagicLinkApiV1AuthMagicLinkPostData, RequestMagicLinkApiV1AuthMagicLinkPostErrors, RequestMagicLinkApiV1AuthMagicLinkPostResponses, SearchStatementsApiV1StatementsSearchGetData, SearchStatementsApiV1StatementsSearchGetErrors, SearchStatementsApiV1StatementsSearchGetResponses, UpdateCurrentUserProfileApiV1AuthMePutData, UpdateCurrentUserProfileApiV1AuthMePutErrors, UpdateCurrentUserProfileApiV1AuthMePutResponses, UpdateStatementApiV1StatementsStatementIdPutData, UpdateStatementApiV1StatementsStatementIdPutErrors, UpdateStatementApiV1StatementsStatementIdPutResponses, VerifyMagicLinkApiV1AuthVerifyPostData, VerifyMagicLinkApiV1AuthVerifyPostErrors, VerifyMagicLinkApiV1AuthVerifyPostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -43,16 +43,24 @@ export const getStatementsApiV1StatementsGet = <ThrowOnError extends boolean = f
  * Create a new statement
  *
  * Create a new political statement.
+ * Requires authentication.
  *
  * Args:
  * statement: Statement data
  * service: Statement service instance
+ * current_user: Authenticated user
  *
  * Returns:
  * Created statement
  */
 export const createStatementApiV1StatementsPost = <ThrowOnError extends boolean = false>(options: Options<CreateStatementApiV1StatementsPostData, ThrowOnError>) => {
     return (options.client ?? client).post<CreateStatementApiV1StatementsPostResponses, CreateStatementApiV1StatementsPostErrors, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
         url: '/api/v1/statements/',
         ...options,
         headers: {
@@ -66,17 +74,25 @@ export const createStatementApiV1StatementsPost = <ThrowOnError extends boolean 
  * Delete statement
  *
  * Delete a statement (soft or hard delete).
+ * Requires authentication.
  *
  * Args:
  * statement_id: Statement ID
  * soft_delete: If True, perform soft delete (set is_active=False)
  * service: Statement service instance
+ * current_user: Authenticated user
  *
  * Raises:
  * HTTPException: 404 if statement not found
  */
 export const deleteStatementApiV1StatementsStatementIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteStatementApiV1StatementsStatementIdDeleteData, ThrowOnError>) => {
     return (options.client ?? client).delete<DeleteStatementApiV1StatementsStatementIdDeleteResponses, DeleteStatementApiV1StatementsStatementIdDeleteErrors, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
         url: '/api/v1/statements/{statement_id}',
         ...options
     });
@@ -108,11 +124,13 @@ export const getStatementApiV1StatementsStatementIdGet = <ThrowOnError extends b
  * Update statement
  *
  * Update an existing statement.
+ * Requires authentication.
  *
  * Args:
  * statement_id: Statement ID
  * statement_data: Updated statement data
  * service: Statement service instance
+ * current_user: Authenticated user
  *
  * Returns:
  * Updated statement
@@ -122,6 +140,12 @@ export const getStatementApiV1StatementsStatementIdGet = <ThrowOnError extends b
  */
 export const updateStatementApiV1StatementsStatementIdPut = <ThrowOnError extends boolean = false>(options: Options<UpdateStatementApiV1StatementsStatementIdPutData, ThrowOnError>) => {
     return (options.client ?? client).put<UpdateStatementApiV1StatementsStatementIdPutResponses, UpdateStatementApiV1StatementsStatementIdPutErrors, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
         url: '/api/v1/statements/{statement_id}',
         ...options,
         headers: {
@@ -212,6 +236,118 @@ export const searchStatementsApiV1StatementsSearchGet = <ThrowOnError extends bo
     return (options.client ?? client).get<SearchStatementsApiV1StatementsSearchGetResponses, SearchStatementsApiV1StatementsSearchGetErrors, ThrowOnError>({
         url: '/api/v1/statements/search/',
         ...options
+    });
+};
+
+/**
+ * Request magic link for authentication
+ *
+ * Request a magic link for passwordless authentication.
+ * Sends an email with a magic link that can be used to log in.
+ * Creates a new user if the email doesn't exist yet.
+ *
+ * Args:
+ * request: Magic link request with email
+ * service: Auth service instance
+ *
+ * Returns:
+ * Response with success message
+ *
+ * Raises:
+ * HTTPException: 500 if failed to send email
+ */
+export const requestMagicLinkApiV1AuthMagicLinkPost = <ThrowOnError extends boolean = false>(options: Options<RequestMagicLinkApiV1AuthMagicLinkPostData, ThrowOnError>) => {
+    return (options.client ?? client).post<RequestMagicLinkApiV1AuthMagicLinkPostResponses, RequestMagicLinkApiV1AuthMagicLinkPostErrors, ThrowOnError>({
+        url: '/api/v1/auth/magic-link',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+};
+
+/**
+ * Verify magic link and get access token
+ *
+ * Verify a magic link token and return a JWT access token.
+ * Creates a new user if the email doesn't exist yet.
+ *
+ * Args:
+ * token_verify: Token verification request
+ * service: Auth service instance
+ *
+ * Returns:
+ * JWT access token and user information
+ *
+ * Raises:
+ * HTTPException: 401 if token is invalid or expired
+ */
+export const verifyMagicLinkApiV1AuthVerifyPost = <ThrowOnError extends boolean = false>(options: Options<VerifyMagicLinkApiV1AuthVerifyPostData, ThrowOnError>) => {
+    return (options.client ?? client).post<VerifyMagicLinkApiV1AuthVerifyPostResponses, VerifyMagicLinkApiV1AuthVerifyPostErrors, ThrowOnError>({
+        url: '/api/v1/auth/verify',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+};
+
+/**
+ * Get current user profile
+ *
+ * Get the current authenticated user's profile.
+ *
+ * Args:
+ * current_user: Current authenticated user from JWT
+ *
+ * Returns:
+ * User profile information
+ */
+export const getCurrentUserProfileApiV1AuthMeGet = <ThrowOnError extends boolean = false>(options?: Options<GetCurrentUserProfileApiV1AuthMeGetData, ThrowOnError>) => {
+    return (options?.client ?? client).get<GetCurrentUserProfileApiV1AuthMeGetResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
+        url: '/api/v1/auth/me',
+        ...options
+    });
+};
+
+/**
+ * Update current user profile
+ *
+ * Update the current authenticated user's profile.
+ *
+ * Args:
+ * user_update: User update data
+ * current_user: Current authenticated user from JWT
+ * service: Auth service instance
+ *
+ * Returns:
+ * Updated user profile
+ *
+ * Raises:
+ * HTTPException: 400 if username is already taken
+ */
+export const updateCurrentUserProfileApiV1AuthMePut = <ThrowOnError extends boolean = false>(options: Options<UpdateCurrentUserProfileApiV1AuthMePutData, ThrowOnError>) => {
+    return (options.client ?? client).put<UpdateCurrentUserProfileApiV1AuthMePutResponses, UpdateCurrentUserProfileApiV1AuthMePutErrors, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
+        url: '/api/v1/auth/me',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
     });
 };
 

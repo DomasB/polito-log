@@ -5,11 +5,35 @@ from app.schemas.statement import (
     StatementInDB,
     StatementResponse
 )
+from app.schemas.user import (
+    UserBase,
+    UserCreate,
+    UserUpdate,
+    UserInDB,
+    UserResponse,
+    UserPublic
+)
+from app.schemas.auth import (
+    MagicLinkRequest,
+    MagicLinkResponse,
+    TokenResponse,
+    TokenVerify
+)
 
 __all__ = [
     "StatementBase",
     "StatementCreate",
     "StatementUpdate",
     "StatementInDB",
-    "StatementResponse"
+    "StatementResponse",
+    "UserBase",
+    "UserCreate",
+    "UserUpdate",
+    "UserInDB",
+    "UserResponse",
+    "UserPublic",
+    "MagicLinkRequest",
+    "MagicLinkResponse",
+    "TokenResponse",
+    "TokenVerify"
 ]

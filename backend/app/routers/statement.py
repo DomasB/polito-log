@@ -10,6 +10,8 @@ from app.schemas.statement import (
     StatementResponse
 )
 from app.models.statement import StatementStatus
+from app.models.user import User
+from app.core.dependencies import get_current_user
 
 
 router = APIRouter(
@@ -27,18 +29,22 @@ def get_statement_service(db: Session = Depends(get_db)) -> StatementService:
     "/",
     response_model=StatementResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new statement"
+    summary="Create a new statement",
+    responses={401: {"description": "Not authenticated"}}
 )
 def create_statement(
     statement: StatementCreate,
-    service: StatementService = Depends(get_statement_service)
+    service: StatementService = Depends(get_statement_service),
+    current_user: User = Depends(get_current_user)
 ) -> StatementResponse:
     """
     Create a new political statement.
+    Requires authentication.
 
     Args:
         statement: Statement data
         service: Statement service instance
+        current_user: Authenticated user
 
     Returns:
         Created statement
@@ -106,20 +112,24 @@ def get_statement(
 @router.put(
     "/{statement_id}",
     response_model=StatementResponse,
-    summary="Update statement"
+    summary="Update statement",
+    responses={401: {"description": "Not authenticated"}, 404: {"description": "Statement not found"}}
 )
 def update_statement(
     statement_id: int,
     statement_data: StatementUpdate,
-    service: StatementService = Depends(get_statement_service)
+    service: StatementService = Depends(get_statement_service),
+    current_user: User = Depends(get_current_user)
 ) -> StatementResponse:
     """
     Update an existing statement.
+    Requires authentication.
 
     Args:
         statement_id: Statement ID
         statement_data: Updated statement data
         service: Statement service instance
+        current_user: Authenticated user
 
     Returns:
         Updated statement
@@ -139,20 +149,24 @@ def update_statement(
 @router.delete(
     "/{statement_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete statement"
+    summary="Delete statement",
+    responses={401: {"description": "Not authenticated"}, 404: {"description": "Statement not found"}}
 )
 def delete_statement(
     statement_id: int,
     soft_delete: bool = Query(True, description="If True, perform soft delete"),
-    service: StatementService = Depends(get_statement_service)
+    service: StatementService = Depends(get_statement_service),
+    current_user: User = Depends(get_current_user)
 ) -> None:
     """
     Delete a statement (soft or hard delete).
+    Requires authentication.
 
     Args:
         statement_id: Statement ID
         soft_delete: If True, perform soft delete (set is_active=False)
         service: Statement service instance
+        current_user: Authenticated user
 
     Raises:
         HTTPException: 404 if statement not found
