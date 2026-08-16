@@ -24,6 +24,8 @@ const {
   searchStatements,
   clearError
 } = useStatements()
+
+import SmartSearch from './search/ui/SmartSearch.vue'
 const authStore = useAuthStore()
 const searchQuery = ref('')
 
@@ -82,13 +84,7 @@ async function handleSearch(query: string) {
       >
         Create Example Statement
       </NButton>
-      <NInput
-        v-model:value="searchQuery"
-        placeholder="Search statements..."
-        clearable
-        style="width: 300px"
-        @update:value="handleSearch"
-      />
+      <SmartSearch @search="handleSearch" />
     </NSpace>
 
     <!-- Loading State -->
