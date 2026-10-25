@@ -36,6 +36,19 @@ def test_per_ip_limit_returns_429(api, emails, limits):
     assert ask(api, "victim3@example.com", ip="198.51.100.9").status_code == 200
 
 
+def test_failed_sends_do_not_count(api, emails, limits, monkeypatch):
+    async def fail(*args, **kwargs):
+        return False
+
+    monkeypatch.setattr(emails, "send_magic_link", fail)
+    for _ in range(4):  # over both the per-email (2) and per-IP (3) limits
+        assert ask(api, "outage@example.com").status_code == 500
+
+    monkeypatch.delattr(emails, "send_magic_link")  # provider is back
+    assert ask(api, "outage@example.com").status_code == 200
+    assert len(emails.sent) == 1
+
+
 def test_window_is_configurable(api, emails, limits, monkeypatch):
     monkeypatch.setattr(settings, "MAGIC_LINK_RATE_LIMIT_WINDOW_MINUTES", 0)
     for _ in range(4):
