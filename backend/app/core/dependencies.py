@@ -1,18 +1,22 @@
-from typing import Optional
+from typing import Callable, Optional
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.enums import UserRole
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.core.security import decode_access_token
 from app.core.email import EmailSender, get_email_sender as get_email_sender_factory
 
 # Security scheme for OpenAPI documentation
+# auto_error=False: get_current_user answers a missing header with 401 itself
+# (HTTPBearer would answer 403).
 bearer_scheme = HTTPBearer(
     scheme_name="BearerAuth",
-    description="JWT Bearer token authentication"
+    description="JWT Bearer token authentication",
+    auto_error=False
 )
 
 
@@ -77,7 +81,7 @@ async def get_current_user_optional(
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: Session = Depends(get_db)
 ) -> User:
     """
@@ -95,6 +99,13 @@ async def get_current_user(
     Raises:
         HTTPException: If not authenticated or token is invalid
     """
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     # Decode token
     payload = decode_access_token(credentials.credentials)
     if not payload:
@@ -136,3 +147,27 @@ async def get_current_user(
     return user
 
 
+def require_role(min_role: UserRole) -> Callable[..., User]:
+    """
+    Build a dependency that admits users whose role is at least `min_role`.
+    The role comes from the database (via get_current_user), never from the JWT.
+
+    Usage:
+        @router.delete("/{id}", dependencies=[Depends(require_role(UserRole.MODERATOR))])
+
+    Args:
+        min_role: Least privileged role that is allowed
+
+    Returns:
+        Dependency returning the current user; it raises 401 when not
+        authenticated and 403 when the role is insufficient
+    """
+    async def dependency(current_user: User = Depends(get_current_user)) -> User:
+        if not current_user.role.at_least(min_role):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient role",
+            )
+        return current_user
+
+    return dependency

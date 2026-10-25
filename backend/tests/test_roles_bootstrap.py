@@ -39,7 +39,9 @@ def test_profile_update_cannot_grant_a_role(api, emails):
 def test_grant_role_sets_the_role(api, emails, db_session):
     login(api, emails, "promoted@example.com")
 
-    UserService(db_session).grant_role("promoted@example.com", UserRole.MODERATOR)
+    UserService(db_session).grant_role(
+        "promoted@example.com", UserRole.MODERATOR, changed_by="cli:test"
+    )
 
     user = db_session.query(User).filter_by(email="promoted@example.com").one()
     assert user.role is UserRole.MODERATOR

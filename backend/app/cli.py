@@ -4,6 +4,7 @@ Operational commands, run as `python -m app.cli <command>`.
 In production run them through Railway, e.g. `railway run python -m app.cli migrate`.
 """
 import argparse
+import getpass
 import sys
 from pathlib import Path
 
@@ -45,7 +46,7 @@ def grant_role(args: argparse.Namespace) -> int:
     role = UserRole(args.role)
     with SessionLocal() as db:
         try:
-            user = UserService(db).grant_role(args.email, role)
+            user = UserService(db).grant_role(args.email, role, changed_by=f"cli:{args.by}")
         except UserNotFoundError:
             print(f"No user with email {args.email}; they must log in once first", file=sys.stderr)
             return 1
@@ -63,6 +64,11 @@ def build_parser() -> argparse.ArgumentParser:
     grant_parser = commands.add_parser("grant-role", help="Set a user's role")
     grant_parser.add_argument("email")
     grant_parser.add_argument("role", choices=[role.value for role in UserRole])
+    grant_parser.add_argument(
+        "--by",
+        default=getpass.getuser(),
+        help="Who is making the change, for the audit log (default: your OS user)",
+    )
     grant_parser.set_defaults(func=grant_role)
 
     return parser

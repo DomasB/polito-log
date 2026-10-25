@@ -360,6 +360,20 @@ railway run python -m app.cli grant-role someone@example.com admin
 To bootstrap the first admin on a new deployment: log in through the site, then
 grant yourself `admin` with the command above.
 
+Each change is recorded in the `role_changes` table (user, old and new role,
+who made it, when). `--by` sets "who" (default: your OS user name). Any future
+admin endpoint that changes roles must go through `UserService.grant_role` so
+it is audited too.
+
+Roles are ordered `default < moderator < admin`. Protect an endpoint with
+`require_role` from `app/core/dependencies.py`; it reads the role from the
+database on every request (never from the JWT), answers 401 without a valid
+token and 403 when the role is too low:
+
+```python
+@router.delete("/{id}", dependencies=[Depends(require_role(UserRole.MODERATOR))])
+```
+
 ## Future Enhancements
 
 Potential improvements:
