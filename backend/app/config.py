@@ -1,5 +1,5 @@
-from pydantic import model_validator
-from pydantic_settings import BaseSettings
+from pydantic import field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 DEFAULT_JWT_SECRET_KEY = "your-secret-key-change-in-production"
@@ -7,6 +7,8 @@ DEFAULT_JWT_SECRET_KEY = "your-secret-key-change-in-production"
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
+
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
     DATABASE_URL: str
     ENVIRONMENT: str = "development"
@@ -31,9 +33,14 @@ class Settings(BaseSettings):
     BREVO_SENDER_EMAIL: str = "noreply@polito-log.lt"  # Sender email address
     BREVO_SENDER_NAME: str = "Polito-Log"  # Sender name
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def use_psycopg_driver(cls, url: str) -> str:
+        """Point bare postgres URLs (as Railway provides them) at psycopg 3."""
+        for scheme in ("postgresql://", "postgres://"):
+            if url.startswith(scheme):
+                return "postgresql+psycopg://" + url[len(scheme):]
+        return url
 
     @model_validator(mode="after")
     def require_production_secrets(self) -> "Settings":

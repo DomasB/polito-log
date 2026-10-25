@@ -76,17 +76,13 @@ class BrevoEmailSender(EmailSender):
             sender_email: Sender email address
             sender_name: Sender name for the email
         """
-        import sib_api_v3_sdk
+        from brevo import AsyncBrevo
 
         self.sender_email = sender_email
         self.sender_name = sender_name
 
         # Configure Brevo API client
-        configuration = sib_api_v3_sdk.Configuration()
-        configuration.api_key['api-key'] = api_key
-        self.api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
-            sib_api_v3_sdk.ApiClient(configuration)
-        )
+        self.client = AsyncBrevo(api_key=api_key)
 
     async def send_magic_link(
         self,
@@ -105,8 +101,8 @@ class BrevoEmailSender(EmailSender):
         Returns:
             bool: True if email was sent successfully, False otherwise
         """
-        import sib_api_v3_sdk
-        from sib_api_v3_sdk.rest import ApiException
+        from brevo import SendTransacEmailRequestSender, SendTransacEmailRequestToItem
+        from brevo.core.api_error import ApiError
 
         try:
             # Prepare email content
@@ -163,21 +159,20 @@ class BrevoEmailSender(EmailSender):
             © Polito-Log - Tracking Political Accountability
             """
 
-            # Create email object
-            send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
-                to=[{"email": to_email}],
-                sender={"email": self.sender_email, "name": self.sender_name},
+            # Send the email
+            api_response = await self.client.transactional_emails.send_transac_email(
+                to=[SendTransacEmailRequestToItem(email=to_email)],
+                sender=SendTransacEmailRequestSender(
+                    email=self.sender_email, name=self.sender_name
+                ),
                 subject="Your Polito-Log Login Link",
                 html_content=html_content,
                 text_content=text_content,
             )
-
-            # Send the email
-            api_response = self.api_instance.send_transac_email(send_smtp_email)
             logger.info(f"Magic link email sent successfully to {to_email}. Message ID: {api_response.message_id}")
             return True
 
-        except ApiException as e:
+        except ApiError as e:
             logger.error(f"Brevo API error sending email to {to_email}: {e}")
             return False
         except Exception as e:

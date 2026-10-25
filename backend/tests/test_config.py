@@ -42,3 +42,16 @@ def test_production_with_all_secrets_starts():
 def test_development_starts_without_secrets():
     settings = make_settings(ENVIRONMENT="development")
     assert settings.BREVO_API_KEY is None
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "postgresql://user:pass@localhost:5432/db",
+        "postgres://user:pass@localhost:5432/db",
+        "postgresql+psycopg://user:pass@localhost:5432/db",
+    ],
+)
+def test_database_url_uses_psycopg_driver(url):
+    settings = Settings(_env_file=None, DATABASE_URL=url)
+    assert settings.DATABASE_URL == "postgresql+psycopg://user:pass@localhost:5432/db"

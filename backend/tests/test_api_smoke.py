@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 
 from app.config import DEFAULT_JWT_SECRET_KEY, settings
 from app.core.security import create_access_token
