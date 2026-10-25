@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ApiHealthCheckApiV1GetData, ApiHealthCheckApiV1GetResponses, CreateStatementApiV1StatementsPostData, CreateStatementApiV1StatementsPostErrors, CreateStatementApiV1StatementsPostResponses, DeleteStatementApiV1StatementsStatementIdDeleteData, DeleteStatementApiV1StatementsStatementIdDeleteErrors, DeleteStatementApiV1StatementsStatementIdDeleteResponses, GetCurrentUserProfileApiV1AuthMeGetData, GetCurrentUserProfileApiV1AuthMeGetResponses, GetStatementApiV1StatementsStatementIdGetData, GetStatementApiV1StatementsStatementIdGetErrors, GetStatementApiV1StatementsStatementIdGetResponses, GetStatementsApiV1StatementsGetData, GetStatementsApiV1StatementsGetErrors, GetStatementsApiV1StatementsGetResponses, GetStatementsByPartyApiV1StatementsPartyPartyGetData, GetStatementsByPartyApiV1StatementsPartyPartyGetErrors, GetStatementsByPartyApiV1StatementsPartyPartyGetResponses, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetData, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetErrors, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetResponses, GetStatementsByStatusApiV1StatementsStatusStatusGetData, GetStatementsByStatusApiV1StatementsStatusStatusGetErrors, GetStatementsByStatusApiV1StatementsStatusStatusGetResponses, HealthCheckGetData, HealthCheckGetResponses, RequestMagicLinkApiV1AuthMagicLinkPostData, RequestMagicLinkApiV1AuthMagicLinkPostErrors, RequestMagicLinkApiV1AuthMagicLinkPostResponses, SearchStatementsApiV1StatementsSearchGetData, SearchStatementsApiV1StatementsSearchGetErrors, SearchStatementsApiV1StatementsSearchGetResponses, UpdateCurrentUserProfileApiV1AuthMePutData, UpdateCurrentUserProfileApiV1AuthMePutErrors, UpdateCurrentUserProfileApiV1AuthMePutResponses, UpdateStatementApiV1StatementsStatementIdPutData, UpdateStatementApiV1StatementsStatementIdPutErrors, UpdateStatementApiV1StatementsStatementIdPutResponses, VerifyMagicLinkApiV1AuthVerifyPostData, VerifyMagicLinkApiV1AuthVerifyPostErrors, VerifyMagicLinkApiV1AuthVerifyPostResponses } from './types.gen';
+import type { ApiHealthCheckApiV1GetData, ApiHealthCheckApiV1GetResponses, CreateStatementApiV1StatementsPostData, CreateStatementApiV1StatementsPostErrors, CreateStatementApiV1StatementsPostResponses, DeleteStatementApiV1StatementsStatementIdDeleteData, DeleteStatementApiV1StatementsStatementIdDeleteErrors, DeleteStatementApiV1StatementsStatementIdDeleteResponses, GetCurrentUserProfileApiV1AuthMeGetData, GetCurrentUserProfileApiV1AuthMeGetResponses, GetStatementApiV1StatementsStatementIdGetData, GetStatementApiV1StatementsStatementIdGetErrors, GetStatementApiV1StatementsStatementIdGetResponses, GetStatementsApiV1StatementsGetData, GetStatementsApiV1StatementsGetErrors, GetStatementsApiV1StatementsGetResponses, GetStatementsByPartyApiV1StatementsPartyPartyGetData, GetStatementsByPartyApiV1StatementsPartyPartyGetErrors, GetStatementsByPartyApiV1StatementsPartyPartyGetResponses, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetData, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetErrors, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetResponses, GetStatementsByStatusApiV1StatementsStatusStatusGetData, GetStatementsByStatusApiV1StatementsStatusStatusGetErrors, GetStatementsByStatusApiV1StatementsStatusStatusGetResponses, HealthCheckGetData, HealthCheckGetResponses, LogoutEverywhereApiV1AuthLogoutAllPostData, LogoutEverywhereApiV1AuthLogoutAllPostResponses, RequestMagicLinkApiV1AuthMagicLinkPostData, RequestMagicLinkApiV1AuthMagicLinkPostErrors, RequestMagicLinkApiV1AuthMagicLinkPostResponses, SearchStatementsApiV1StatementsSearchGetData, SearchStatementsApiV1StatementsSearchGetErrors, SearchStatementsApiV1StatementsSearchGetResponses, UpdateCurrentUserProfileApiV1AuthMePutData, UpdateCurrentUserProfileApiV1AuthMePutErrors, UpdateCurrentUserProfileApiV1AuthMePutResponses, UpdateStatementApiV1StatementsStatementIdPutData, UpdateStatementApiV1StatementsStatementIdPutErrors, UpdateStatementApiV1StatementsStatementIdPutResponses, VerifyMagicLinkApiV1AuthVerifyPostData, VerifyMagicLinkApiV1AuthVerifyPostErrors, VerifyMagicLinkApiV1AuthVerifyPostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -203,7 +203,8 @@ export const searchStatementsApiV1StatementsSearchGet = <ThrowOnError extends bo
  * Response with success message
  *
  * Raises:
- * HTTPException: 500 if failed to send email
+ * HTTPException: 429 if the email or IP requested too many links
+ * recently, 500 if failed to send email
  */
 export const requestMagicLinkApiV1AuthMagicLinkPost = <ThrowOnError extends boolean = false>(options: Options<RequestMagicLinkApiV1AuthMagicLinkPostData, ThrowOnError>): RequestResult<RequestMagicLinkApiV1AuthMagicLinkPostResponses, RequestMagicLinkApiV1AuthMagicLinkPostErrors, ThrowOnError> => (options.client ?? client).post<RequestMagicLinkApiV1AuthMagicLinkPostResponses, RequestMagicLinkApiV1AuthMagicLinkPostErrors, ThrowOnError>({
     url: '/api/v1/auth/magic-link',
@@ -259,7 +260,8 @@ export const getCurrentUserProfileApiV1AuthMeGet = <ThrowOnError extends boolean
 /**
  * Update current user profile
  *
- * Update the current authenticated user's profile.
+ * Update the current authenticated user's profile. Only the username can
+ * be changed; any other field is rejected with 422.
  *
  * Args:
  * user_update: User update data
@@ -270,7 +272,7 @@ export const getCurrentUserProfileApiV1AuthMeGet = <ThrowOnError extends boolean
  * Updated user profile
  *
  * Raises:
- * HTTPException: 400 if username is already taken
+ * HTTPException: 400 if the username is reserved or already taken
  */
 export const updateCurrentUserProfileApiV1AuthMePut = <ThrowOnError extends boolean = false>(options: Options<UpdateCurrentUserProfileApiV1AuthMePutData, ThrowOnError>): RequestResult<UpdateCurrentUserProfileApiV1AuthMePutResponses, UpdateCurrentUserProfileApiV1AuthMePutErrors, ThrowOnError> => (options.client ?? client).put<UpdateCurrentUserProfileApiV1AuthMePutResponses, UpdateCurrentUserProfileApiV1AuthMePutErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -281,6 +283,29 @@ export const updateCurrentUserProfileApiV1AuthMePut = <ThrowOnError extends bool
         ...options.headers
     }
 });
+
+/**
+ * Log out everywhere
+ *
+ * Revoke every session token of the current user, including the one used
+ * for this request. The user has to log in again with a new magic link.
+ *
+ * Args:
+ * current_user: Current authenticated user from JWT
+ * service: Auth service instance
+ */
+export const logoutEverywhereApiV1AuthLogoutAllPost = <ThrowOnError extends boolean = false>(options?: Options<LogoutEverywhereApiV1AuthLogoutAllPostData, ThrowOnError>) => {
+    return (options?.client ?? client).post<LogoutEverywhereApiV1AuthLogoutAllPostResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
+        url: '/api/v1/auth/logout-all',
+        ...options
+    });
+};
 
 /**
  * Health Check

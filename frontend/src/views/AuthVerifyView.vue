@@ -14,9 +14,13 @@ onMounted(async () => {
 
   if (!token) {
     message.error('No token provided')
-    router.push('/login')
+    router.replace('/login')
     return
   }
+
+  // Drop the single-use token from the address bar and history right away,
+  // so it is not left in the browser history or shared with the page's URL.
+  await router.replace({ path: route.path, query: {} })
 
   const success = await authStore.verifyMagicLink(token)
 
@@ -24,7 +28,7 @@ onMounted(async () => {
     message.success('Login successful!')
     // Redirect to home page
     setTimeout(() => {
-      router.push('/')
+      router.replace('/')
     }, 1000)
   }
 })
