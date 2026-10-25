@@ -43,7 +43,7 @@ def test_list_statements():
 
 
 def test_me_accepts_token_signed_with_configured_key(user):
-    token = create_access_token({"sub": str(user.id)})
+    token = create_access_token({"sub": str(user.id), "ver": user.token_version})
     response = client.get(
         f"{settings.API_V1_PREFIX}/auth/me",
         headers={"Authorization": f"Bearer {token}"},
@@ -57,7 +57,11 @@ def test_me_rejects_token_signed_with_default_key(user):
     # authenticate once a real key is configured.
     assert settings.JWT_SECRET_KEY != DEFAULT_JWT_SECRET_KEY
     forged = jwt.encode(
-        {"sub": str(user.id), "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
+        {
+            "sub": str(user.id),
+            "ver": user.token_version,
+            "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        },
         DEFAULT_JWT_SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
     )

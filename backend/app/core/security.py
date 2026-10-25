@@ -1,3 +1,4 @@
+import hashlib
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
@@ -68,6 +69,20 @@ def generate_magic_link_token() -> str:
     # Generate 32 bytes (256 bits) of random data
     # This is URL-safe and cryptographically secure
     return secrets.token_urlsafe(32)
+
+
+def hash_magic_link_token(token: str) -> str:
+    """
+    Hash a magic link token for storage and lookup. Tokens carry 256 bits of
+    randomness, so a plain (unsalted) SHA-256 is enough.
+
+    Args:
+        token: Token as sent in the magic link
+
+    Returns:
+        Hex-encoded SHA-256 digest
+    """
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 def verify_magic_link_token(token: str) -> bool:

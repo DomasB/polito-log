@@ -229,13 +229,9 @@ export type TokenResponse = {
    */
   expires_at: string
   /**
-   * User
-   *
    * User information
    */
-  user: {
-    [key: string]: unknown
-  }
+  user: UserSummary
 }
 
 /**
@@ -278,6 +274,7 @@ export type UserResponse = {
    * Is Active
    */
   is_active: boolean
+  role: UserRole
   /**
    * Created At
    */
@@ -289,23 +286,43 @@ export type UserResponse = {
 }
 
 /**
- * UserUpdate
+ * UserRole
  *
- * Schema for updating an existing user. All fields are optional.
+ * User role enumeration. Use `rank`/`at_least` to compare privilege.
  */
-export type UserUpdate = {
-  /**
-   * Email
-   */
-  email?: string | null
+export type UserRole = 'admin' | 'moderator' | 'default'
+
+/**
+ * UserSelfUpdate
+ *
+ * Schema for a user updating their own profile. Only the username can change.
+ */
+export type UserSelfUpdate = {
   /**
    * Username
    */
   username?: string | null
+}
+
+/**
+ * UserSummary
+ *
+ * Schema for the user returned alongside an access token.
+ */
+export type UserSummary = {
   /**
-   * Is Active
+   * Id
    */
-  is_active?: boolean | null
+  id: number
+  /**
+   * Email
+   */
+  email: string
+  /**
+   * Username
+   */
+  username: string
+  role: UserRole
 }
 
 /**
@@ -706,6 +723,10 @@ export type RequestMagicLinkApiV1AuthMagicLinkPostErrors = {
    * Validation Error
    */
   422: HttpValidationError
+  /**
+   * Too many magic link requests
+   */
+  429: unknown
 }
 
 export type RequestMagicLinkApiV1AuthMagicLinkPostError =
@@ -766,7 +787,7 @@ export type GetCurrentUserProfileApiV1AuthMeGetResponse =
   GetCurrentUserProfileApiV1AuthMeGetResponses[keyof GetCurrentUserProfileApiV1AuthMeGetResponses]
 
 export type UpdateCurrentUserProfileApiV1AuthMePutData = {
-  body: UserUpdate
+  body: UserSelfUpdate
   path?: never
   query?: never
   url: '/api/v1/auth/me'
@@ -791,6 +812,23 @@ export type UpdateCurrentUserProfileApiV1AuthMePutResponses = {
 
 export type UpdateCurrentUserProfileApiV1AuthMePutResponse =
   UpdateCurrentUserProfileApiV1AuthMePutResponses[keyof UpdateCurrentUserProfileApiV1AuthMePutResponses]
+
+export type LogoutEverywhereApiV1AuthLogoutAllPostData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/v1/auth/logout-all'
+}
+
+export type LogoutEverywhereApiV1AuthLogoutAllPostResponses = {
+  /**
+   * Successful Response
+   */
+  204: void
+}
+
+export type LogoutEverywhereApiV1AuthLogoutAllPostResponse =
+  LogoutEverywhereApiV1AuthLogoutAllPostResponses[keyof LogoutEverywhereApiV1AuthLogoutAllPostResponses]
 
 export type HealthCheckGetData = {
   body?: never

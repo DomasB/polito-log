@@ -30,6 +30,8 @@ import type {
   GetStatementsByStatusApiV1StatementsStatusStatusGetResponses,
   HealthCheckGetData,
   HealthCheckGetResponses,
+  LogoutEverywhereApiV1AuthLogoutAllPostData,
+  LogoutEverywhereApiV1AuthLogoutAllPostResponses,
   RequestMagicLinkApiV1AuthMagicLinkPostData,
   RequestMagicLinkApiV1AuthMagicLinkPostErrors,
   RequestMagicLinkApiV1AuthMagicLinkPostResponses,
@@ -360,7 +362,8 @@ export const searchStatementsApiV1StatementsSearchGet = <ThrowOnError extends bo
  * Response with success message
  *
  * Raises:
- * HTTPException: 500 if failed to send email
+ * HTTPException: 429 if the email or IP requested too many links
+ * recently, 500 if failed to send email
  */
 export const requestMagicLinkApiV1AuthMagicLinkPost = <ThrowOnError extends boolean = false>(
   options: Options<RequestMagicLinkApiV1AuthMagicLinkPostData, ThrowOnError>,
@@ -445,7 +448,8 @@ export const getCurrentUserProfileApiV1AuthMeGet = <ThrowOnError extends boolean
 /**
  * Update current user profile
  *
- * Update the current authenticated user's profile.
+ * Update the current authenticated user's profile. Only the username can
+ * be changed; any other field is rejected with 422.
  *
  * Args:
  * user_update: User update data
@@ -456,7 +460,7 @@ export const getCurrentUserProfileApiV1AuthMeGet = <ThrowOnError extends boolean
  * Updated user profile
  *
  * Raises:
- * HTTPException: 400 if username is already taken
+ * HTTPException: 400 if the username is reserved or already taken
  */
 export const updateCurrentUserProfileApiV1AuthMePut = <ThrowOnError extends boolean = false>(
   options: Options<UpdateCurrentUserProfileApiV1AuthMePutData, ThrowOnError>,
@@ -477,6 +481,29 @@ export const updateCurrentUserProfileApiV1AuthMePut = <ThrowOnError extends bool
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  })
+
+/**
+ * Log out everywhere
+ *
+ * Revoke every session token of the current user, including the one used
+ * for this request. The user has to log in again with a new magic link.
+ *
+ * Args:
+ * current_user: Current authenticated user from JWT
+ * service: Auth service instance
+ */
+export const logoutEverywhereApiV1AuthLogoutAllPost = <ThrowOnError extends boolean = false>(
+  options?: Options<LogoutEverywhereApiV1AuthLogoutAllPostData, ThrowOnError>,
+): RequestResult<LogoutEverywhereApiV1AuthLogoutAllPostResponses, unknown, ThrowOnError> =>
+  (options?.client ?? client).post<
+    LogoutEverywhereApiV1AuthLogoutAllPostResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/auth/logout-all',
+    ...options,
   })
 
 /**

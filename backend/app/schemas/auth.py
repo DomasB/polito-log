@@ -1,6 +1,8 @@
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 
+from app.schemas.user import UserSummary
+
 
 class MagicLinkRequest(BaseModel):
     """Schema for requesting a magic link."""
@@ -21,7 +23,7 @@ class TokenResponse(BaseModel):
     access_token: str = Field(..., description="JWT access token")
     token_type: str = Field(default="bearer", description="Token type")
     expires_at: datetime = Field(..., description="Token expiration time")
-    user: dict = Field(..., description="User information")
+    user: UserSummary = Field(..., description="User information")
 
 
 class TokenVerify(BaseModel):
