@@ -11,7 +11,9 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import inspect
 
-from app.database import engine
+from app.database import SessionLocal, engine
+from app.models.enums import UserRole
+from app.services.user import UserNotFoundError, UserService
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 BASELINE_REVISION = "0001_baseline"
@@ -38,12 +40,30 @@ def migrate(args: argparse.Namespace) -> int:
     return 0
 
 
+def grant_role(args: argparse.Namespace) -> int:
+    """Set the role of an existing user (they must have logged in once)."""
+    role = UserRole(args.role)
+    with SessionLocal() as db:
+        try:
+            user = UserService(db).grant_role(args.email, role)
+        except UserNotFoundError:
+            print(f"No user with email {args.email}; they must log in once first", file=sys.stderr)
+            return 1
+        print(f"{user.email} now has role {user.role.value}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     commands = parser.add_subparsers(dest="command", required=True)
 
     migrate_parser = commands.add_parser("migrate", help="Run database migrations")
     migrate_parser.set_defaults(func=migrate)
+
+    grant_parser = commands.add_parser("grant-role", help="Set a user's role")
+    grant_parser.add_argument("email")
+    grant_parser.add_argument("role", choices=[role.value for role in UserRole])
+    grant_parser.set_defaults(func=grant_role)
 
     return parser
 

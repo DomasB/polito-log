@@ -339,6 +339,27 @@ async function fetchProtected(url) {
 - When updating profile, chosen username exists
 - Choose a different username
 
+## Roles
+
+Every user has a `role`: `default`, `moderator` or `admin`. New users always
+start as `default`. No HTTP request can change a role, including `PUT /auth/me`
+and signup; the first user to sign up is not special.
+
+Roles are granted from the command line, against a user who has logged in once:
+
+```bash
+# Development
+./dev.sh shell
+python -m app.cli grant-role someone@example.com admin
+
+# Production (runs locally with the Railway service's variables)
+cd backend
+railway run python -m app.cli grant-role someone@example.com admin
+```
+
+To bootstrap the first admin on a new deployment: log in through the site, then
+grant yourself `admin` with the command above.
+
 ## Future Enhancements
 
 Potential improvements:
@@ -347,5 +368,4 @@ Potential improvements:
 - Two-factor authentication (2FA)
 - OAuth integration (Google, GitHub, etc.)
 - Refresh tokens for longer sessions
-- User roles and permissions
 - Account deletion and data export
