@@ -10,7 +10,7 @@ from app.schemas.auth import (
     TokenResponse,
     TokenVerify
 )
-from app.schemas.user import UserResponse, UserUpdate
+from app.schemas.user import UserResponse, UserSummary, UserUpdate
 from app.core.dependencies import get_email_sender, get_current_user
 from app.core.email import EmailSender
 from app.models.user import User
@@ -113,12 +113,7 @@ def verify_magic_link(
         access_token=access_token,
         token_type="bearer",
         expires_at=expires_at,
-        user={
-            "id": user.id,
-            "email": user.email,
-            "username": user.username,
-            "role": user.role
-        }
+        user=UserSummary.model_validate(user)
     )
 
 

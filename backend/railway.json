@@ -7,6 +7,9 @@
   "deploy": {
     "numReplicas": 1,
     "sleepApplication": false,
+    "preDeployCommand": [
+      "python -m app.cli migrate"
+    ],
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10,
     "healthcheckPath": "/",

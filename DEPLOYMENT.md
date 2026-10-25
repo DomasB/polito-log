@@ -164,15 +164,15 @@ All of this happens in the Railway dashboard. No GitHub workflow is involved.
 
 ## Database Migrations
 
-When database migrations (Alembic) are added, run them as a Railway pre-deploy command in `backend/railway.json`, so Railway runs them (in a separate container with the service's variables) before the new version goes live:
+Alembic migrations run as a Railway pre-deploy command in `backend/railway.json`. Railway runs it in a separate container with the service's variables, before the new version goes live; if it fails, the deploy stops and the old version keeps serving:
 
 ```json
 "deploy": {
-  "preDeployCommand": ["alembic upgrade head"]
+  "preDeployCommand": ["python -m app.cli migrate"]
 }
 ```
 
-Until then, the backend creates missing tables on startup (`Base.metadata.create_all` in `app/main.py`).
+This only takes effect once Railway applies `backend/railway.json` (see beads issue `polito-log-cf2`); until then, set the same pre-deploy command on the backend service in the dashboard. The app no longer creates tables on startup. Details, including how the first migration adopts the existing production schema: `backend/MIGRATIONS.md`.
 
 ## Environment-Specific Configuration
 
@@ -352,9 +352,8 @@ After completing this setup:
 3. Check application functionality end-to-end
 4. Set up monitoring and alerts
 5. Configure custom domains (if needed)
-6. Implement database migrations (Alembic)
-7. Add health check monitoring
-8. Set up staging environment
+6. Add health check monitoring
+7. Set up staging environment
 
 ## Support
 

@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import statement_router, auth_router
-from app.database import Base, engine
 
 
 def create_application() -> FastAPI:
@@ -65,9 +64,6 @@ def create_application() -> FastAPI:
 
     return app
 
-
-# Create database tables
-Base.metadata.create_all(bind=engine)
 
 # Create application instance
 app = create_application()

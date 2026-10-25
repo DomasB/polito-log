@@ -11,7 +11,8 @@ from app.schemas.user import (
     UserUpdate,
     UserInDB,
     UserResponse,
-    UserPublic
+    UserPublic,
+    UserSummary
 )
 from app.schemas.auth import (
     MagicLinkRequest,
@@ -32,6 +33,7 @@ __all__ = [
     "UserInDB",
     "UserResponse",
     "UserPublic",
+    "UserSummary",
     "MagicLinkRequest",
     "MagicLinkResponse",
     "TokenResponse",

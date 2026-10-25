@@ -17,9 +17,18 @@ class User(Base):
     username: str = Column(String(100), unique=True, nullable=False, index=True)
     is_active: bool = Column(Boolean, default=True, nullable=False)
     is_superuser: bool = Column(Boolean, default=False, nullable=False)
+    # Stored by value ('admin', not 'ADMIN') and guarded by a CHECK constraint.
     role: UserRole = Column(
-        SQLAlchemyEnum(UserRole, native_enum=False, length=20),
+        SQLAlchemyEnum(
+            UserRole,
+            name="user_role",
+            native_enum=False,
+            length=20,
+            create_constraint=True,
+            values_callable=lambda roles: [role.value for role in roles],
+        ),
         default=UserRole.DEFAULT,
+        server_default=UserRole.DEFAULT.value,
         nullable=False
     )
     created_at: datetime = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

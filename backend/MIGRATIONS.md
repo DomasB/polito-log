@@ -1,132 +1,72 @@
-# Database Migrations Guide
+# Database Migrations
 
-This project uses Alembic for database migrations.
+The schema is managed by Alembic. The app never creates tables itself: every
+schema change is a migration in `alembic/versions/`.
 
-## Production (Railway)
-
-Migrations run **automatically** on container startup:
-- The `start.sh` script runs `alembic upgrade head` before starting the server
-- If migrations fail, the container will not start
-- Check Railway logs to see migration output
-
-## Development
-
-### Running Migrations
-
-#### With Docker (Recommended)
+Run migrations with:
 
 ```bash
-# Option 1: Run migration in the backend container
+python -m app.cli migrate
+```
+
+It runs `alembic upgrade head`. On a database that the old
+`Base.metadata.create_all` built (tables exist, no `alembic_version` table) it
+first stamps the baseline revision `0001_baseline`, so only the migrations after
+the baseline run. That is how existing databases, production included, are
+adopted. Running it again is a no-op.
+
+## Where migrations run
+
+- **Production (Railway):** the backend's pre-deploy command,
+  `python -m app.cli migrate` (`backend/railway.json`, `deploy.preDeployCommand`).
+  It runs once per deploy in a separate container, before the new version takes
+  traffic. A failed migration stops the deploy and the old version keeps
+  serving. Output is in the deployment's logs. Migrations do not run at
+  container start.
+- **Development (Docker):** `./dev.sh` starts the backend with
+  `python -m app.cli migrate && uvicorn ...`, so the dev database is migrated on
+  every start.
+- **CI:** the backend workflow migrates a fresh database before `pytest`, and
+  `tests/test_migrations.py` fails if the models and the migrations disagree.
+
+## Creating a migration
+
+After changing a model in `app/models/`:
+
+```bash
 ./dev.sh shell
-alembic upgrade head
-
-# Option 2: Execute directly
-docker exec -it polito-log-backend alembic upgrade head
+alembic revision --autogenerate -m "describe the change" --rev-id 0003_short_name
 ```
 
-#### Without Docker (Local Python)
+Then review the generated file. Autogenerate misses things such as CHECK
+constraints, data migrations and enum changes, and it can turn a rename into a
+drop plus an add. Number revision IDs sequentially (`0003_...`, `0004_...`).
+
+Apply it with `python -m app.cli migrate` (or restart `./dev.sh`) and run the
+tests. Commit the migration with the model change.
+
+### Guidelines
+
+1. One logical change per migration.
+2. Write `downgrade()` too, and try it: `alembic downgrade -1`, then upgrade again.
+3. When adding a NOT NULL column to a table with rows, give it a
+   `server_default`, or add it nullable, backfill, then set NOT NULL.
+4. Keep migrations compatible with the running version where possible: the new
+   schema is live briefly before the new code is.
+
+## Useful commands
 
 ```bash
-cd backend
-
-# Make sure you have a .env file with DATABASE_URL
-# Example: DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
-
-# Run migrations
-alembic upgrade head
-
-# Rollback one migration
-alembic downgrade -1
-
-# See migration history
-alembic history
-
-# See current version
-alembic current
+alembic current            # revision the database is at
+alembic history            # all revisions
+alembic downgrade -1       # roll back one revision
+alembic upgrade head       # upgrade without the baseline stamping step
 ```
 
-### Creating New Migrations
+## Files
 
-When you modify models in `app/models/`, create a migration:
-
-```bash
-# With Docker
-./dev.sh shell
-alembic revision -m "description of changes"
-
-# Without Docker
-cd backend
-alembic revision -m "description of changes"
-```
-
-For auto-generating migrations based on model changes:
-
-```bash
-alembic revision --autogenerate -m "description of changes"
-```
-
-**Note:** Always review auto-generated migrations before committing!
-
-### Migration Best Practices
-
-1. **One logical change per migration** - Don't mix multiple unrelated schema changes
-2. **Always review auto-generated migrations** - They may not catch all edge cases
-3. **Test migrations both ways** - Test both upgrade and downgrade
-4. **Handle existing data** - When adding non-nullable columns to tables with data:
-   ```python
-   # Add column as nullable first
-   op.add_column('table', sa.Column('new_col', sa.String(), nullable=True))
-
-   # Set default values for existing rows
-   op.execute("UPDATE table SET new_col = 'default' WHERE new_col IS NULL")
-
-   # Make column non-nullable
-   op.alter_column('table', 'new_col', nullable=False)
-   ```
-
-5. **Commit migrations with code changes** - Always commit the migration file along with the model changes
-
-## Migration Files
-
-- `alembic/versions/` - Contains all migration files
-- `alembic.ini` - Alembic configuration (database URL is overridden in env.py)
-- `alembic/env.py` - Migration environment setup
-- `start.sh` - Production startup script that runs migrations
-
-## Troubleshooting
-
-### Migration fails with "Target database is not up to date"
-
-```bash
-# Check current version
-alembic current
-
-# See history
-alembic history
-
-# Upgrade to latest
-alembic upgrade head
-```
-
-### Need to rollback a migration
-
-```bash
-# Rollback one migration
-alembic downgrade -1
-
-# Rollback to specific version
-alembic downgrade <revision_id>
-
-# Rollback all migrations
-alembic downgrade base
-```
-
-### Reset database completely (DANGEROUS)
-
-```bash
-# Drop all tables and rerun migrations
-./dev.sh down -v  # Removes volumes
-./dev.sh up
-./dev.sh shell
-alembic upgrade head
-```
+- `alembic/versions/`: migrations. `0001_baseline` is the schema that
+  `create_all` produced before Alembic was introduced.
+- `alembic/env.py`: takes the database URL from `app.config.settings`.
+- `alembic.ini`: Alembic configuration.
+- `app/cli.py`: the `migrate` command.

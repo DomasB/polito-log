@@ -50,3 +50,14 @@ class UserPublic(BaseModel):
     role: UserRole
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserSummary(BaseModel):
+    """Schema for the user returned alongside an access token."""
+
+    id: int
+    email: EmailStr
+    username: str
+    role: UserRole
+
+    model_config = ConfigDict(from_attributes=True)

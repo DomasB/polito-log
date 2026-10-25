@@ -229,13 +229,9 @@ export type TokenResponse = {
      */
     expires_at: string;
     /**
-     * User
-     *
      * User information
      */
-    user: {
-        [key: string]: unknown;
-    };
+    user: UserSummary;
 };
 
 /**
@@ -278,6 +274,7 @@ export type UserResponse = {
      * Is Active
      */
     is_active: boolean;
+    role: UserRole;
     /**
      * Created At
      */
@@ -286,6 +283,34 @@ export type UserResponse = {
      * Updated At
      */
     updated_at: string;
+};
+
+/**
+ * UserRole
+ *
+ * User role enumeration.
+ */
+export type UserRole = 'admin' | 'moderator' | 'default';
+
+/**
+ * UserSummary
+ *
+ * Schema for the user returned alongside an access token.
+ */
+export type UserSummary = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Username
+     */
+    username: string;
+    role: UserRole;
 };
 
 /**
