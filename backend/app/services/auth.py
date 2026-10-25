@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 from sqlalchemy.orm import Session
 
@@ -7,9 +7,26 @@ from app.repositories.magic_link import MagicLinkRepository
 from app.models.user import User
 from app.models.magic_link import MagicLink
 from app.schemas.user import UserCreate
-from app.core.security import generate_magic_link_token, create_access_token
+from app.core.security import (
+    create_access_token,
+    generate_magic_link_token,
+    hash_magic_link_token,
+)
 from app.core.email import EmailSender
+from app.core.usernames import is_reserved_username
 from app.config import settings
+
+
+class UsernameUnavailableError(Exception):
+    """Raised when a requested username is reserved or already taken."""
+
+
+class RateLimitExceededError(Exception):
+    """Raised when too many magic links were requested recently."""
+
+    def __init__(self, retry_after_seconds: int):
+        super().__init__("Too many magic link requests, try again later")
+        self.retry_after_seconds = retry_after_seconds
 
 
 class AuthService:
@@ -28,17 +45,28 @@ class AuthService:
         self.email_sender = email_sender
         self.db = db
 
-    async def request_magic_link(self, email: str) -> Tuple[bool, str]:
+    async def request_magic_link(
+        self,
+        email: str,
+        client_ip: Optional[str] = None
+    ) -> Tuple[bool, str]:
         """
         Request a magic link for authentication.
         Creates a new user if email doesn't exist.
 
         Args:
             email: Email address to send magic link to
+            client_ip: IP address of the requester, for rate limiting
 
         Returns:
             Tuple of (success: bool, message: str)
+
+        Raises:
+            RateLimitExceededError: If the email or IP requested too many links
+                within MAGIC_LINK_RATE_LIMIT_WINDOW_MINUTES
         """
+        self._check_rate_limit(email, client_ip)
+
         # Check if user exists
         user = self.user_repository.get_by_email(email)
 
@@ -46,15 +74,16 @@ class AuthService:
         token = generate_magic_link_token()
 
         # Calculate expiration time
-        expires_at = datetime.utcnow() + timedelta(
+        expires_at = datetime.now(timezone.utc) + timedelta(
             minutes=settings.MAGIC_LINK_EXPIRE_MINUTES
         )
 
-        # Create magic link record
+        # Create magic link record; only the token's hash is stored
         magic_link = MagicLink(
-            token=token,
+            token_hash=hash_magic_link_token(token),
             email=email,
             user_id=user.id if user else None,
+            request_ip=client_ip,
             expires_at=expires_at
         )
         self.magic_link_repository.create(magic_link)
@@ -76,6 +105,19 @@ class AuthService:
         else:
             return False, "Failed to send magic link"
 
+    def _check_rate_limit(self, email: str, client_ip: Optional[str]) -> None:
+        """Raise RateLimitExceededError if this email or IP is over its limit."""
+        window = timedelta(minutes=settings.MAGIC_LINK_RATE_LIMIT_WINDOW_MINUTES)
+        since = datetime.now(timezone.utc) - window
+        over_email = self.magic_link_repository.count_created_since(
+            since, email=email
+        ) >= settings.MAGIC_LINK_RATE_LIMIT_PER_EMAIL
+        over_ip = client_ip is not None and self.magic_link_repository.count_created_since(
+            since, request_ip=client_ip
+        ) >= settings.MAGIC_LINK_RATE_LIMIT_PER_IP
+        if over_email or over_ip:
+            raise RateLimitExceededError(int(window.total_seconds()))
+
     def verify_magic_link(self, token: str) -> Optional[Tuple[User, str]]:
         """
         Verify a magic link token and return user with JWT token.
@@ -87,18 +129,21 @@ class AuthService:
         Returns:
             Tuple of (User, JWT token) or None if invalid
         """
-        # Get valid magic link
-        magic_link = self.magic_link_repository.get_valid_by_token(token)
+        # Use the link (and invalidate the email's other links) in one step
+        email = self.magic_link_repository.consume(hash_magic_link_token(token))
 
-        if not magic_link:
+        if not email:
             return None
 
         # Get or create user
-        user = self.user_repository.get_by_email(magic_link.email)
+        user = self.user_repository.get_by_email(email)
 
         if not user:
-            # Create new user with email as username initially
-            username = magic_link.email.split("@")[0]
+            # Create new user with email as username initially.
+            # New users always get the default role; only `app.cli grant-role` changes it.
+            username = email.split("@")[0]
+            if is_reserved_username(username):
+                username = "user"
             # Ensure username is unique
             base_username = username
             counter = 1
@@ -107,27 +152,45 @@ class AuthService:
                 counter += 1
 
             user = User(
-                email=magic_link.email,
+                email=email,
                 username=username,
                 is_active=True
             )
             user = self.user_repository.create(user)
 
-        # Update last login
-        self.user_repository.update(user)
+        return user, self.create_session_token(user)
 
-        # Mark magic link as used
-        self.magic_link_repository.mark_as_used(magic_link)
+    @staticmethod
+    def create_session_token(user: User) -> str:
+        """
+        Create a session JWT for a user. It stays valid until it expires or
+        the user's token_version changes.
 
-        # Create JWT token
-        token_data = {
+        Args:
+            user: User to authenticate
+
+        Returns:
+            Encoded JWT
+        """
+        return create_access_token({
             "sub": str(user.id),
+            "ver": user.token_version,
             "email": user.email,
             "username": user.username
-        }
-        access_token = create_access_token(token_data)
+        })
 
-        return user, access_token
+    def revoke_sessions(self, user: User) -> User:
+        """
+        Invalidate every session token issued to a user ("log out everywhere").
+
+        Args:
+            user: User whose sessions to revoke
+
+        Returns:
+            Updated User instance
+        """
+        user.token_version += 1
+        return self.user_repository.update(user)
 
     def get_current_user(self, user_id: int) -> Optional[User]:
         """
@@ -155,16 +218,20 @@ class AuthService:
 
         Returns:
             Updated User instance or None if not found
+
+        Raises:
+            UsernameUnavailableError: If the username is reserved or taken
         """
         user = self.user_repository.get_by_id(user_id)
         if not user:
             return None
 
-        if username:
-            # Check if username is already taken
+        if username and username != user.username:
+            if is_reserved_username(username):
+                raise UsernameUnavailableError("Username is reserved")
             existing = self.user_repository.get_by_username(username)
             if existing and existing.id != user_id:
-                return None
+                raise UsernameUnavailableError("Username already taken")
             user.username = username
 
         return self.user_repository.update(user)

@@ -54,5 +54,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt -r requirements-dev.txt
 
+      # Proves a fresh database migrates to head; tests then run on that schema.
+      - name: Run migrations
+        run: python -m app.cli migrate
+
       - name: Run tests
         run: pytest

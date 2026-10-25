@@ -5,11 +5,12 @@ import {
   verifyMagicLinkApiV1AuthVerifyPost,
   getCurrentUserProfileApiV1AuthMeGet,
 } from '@/api/sdk.gen'
-import type { UserResponse } from '@/api/types.gen'
+import type { UserSummary } from '@/api/types.gen'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
-  const user = ref<UserResponse | null>(null)
+  // Filled from the verify response (UserSummary) or /auth/me (UserResponse, a superset)
+  const user = ref<UserSummary | null>(null)
   const sessionToken = ref<string | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
@@ -51,7 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (response.data) {
         sessionToken.value = response.data.access_token
-        user.value = response.data.user as UserResponse
+        user.value = response.data.user
 
         // Store session token in localStorage for persistence
         localStorage.setItem('session_token', response.data.access_token)
