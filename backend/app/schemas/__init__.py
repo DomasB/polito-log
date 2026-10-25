@@ -8,10 +8,11 @@ from app.schemas.statement import (
 from app.schemas.user import (
     UserBase,
     UserCreate,
-    UserUpdate,
+    UserSelfUpdate,
     UserInDB,
     UserResponse,
-    UserPublic
+    UserPublic,
+    UserSummary
 )
 from app.schemas.auth import (
     MagicLinkRequest,
@@ -28,10 +29,11 @@ __all__ = [
     "StatementResponse",
     "UserBase",
     "UserCreate",
-    "UserUpdate",
+    "UserSelfUpdate",
     "UserInDB",
     "UserResponse",
     "UserPublic",
+    "UserSummary",
     "MagicLinkRequest",
     "MagicLinkResponse",
     "TokenResponse",

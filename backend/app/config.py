@@ -1,6 +1,7 @@
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+from urllib.parse import urlsplit
 
 DEFAULT_JWT_SECRET_KEY = "your-secret-key-change-in-production"
 
@@ -27,6 +28,17 @@ class Settings(BaseSettings):
     # Magic Link Settings
     MAGIC_LINK_EXPIRE_MINUTES: int = 15  # Magic links expire in 15 minutes
     FRONTEND_URL: str = "http://localhost:5173"  # Frontend URL for magic links
+    # Comma-separated origins allowed by CORS; empty means just FRONTEND_URL's origin
+    CORS_ORIGINS: str = ""
+
+    # Magic link rate limits: requests allowed per window, per email and per client IP
+    MAGIC_LINK_RATE_LIMIT_WINDOW_MINUTES: int = 60
+    MAGIC_LINK_RATE_LIMIT_PER_EMAIL: int = 5
+    MAGIC_LINK_RATE_LIMIT_PER_IP: int = 20
+
+    # Number of reverse proxies in front of the app (Railway: 1). The client IP is
+    # taken from X-Forwarded-For that many entries from the right; 0 ignores it.
+    TRUSTED_PROXY_HOPS: int = 1
 
     # Email Settings
     BREVO_API_KEY: Optional[str] = None  # Brevo (Sendinblue) API key for production emails
@@ -41,6 +53,14 @@ class Settings(BaseSettings):
             if url.startswith(scheme):
                 return "postgresql+psycopg://" + url[len(scheme):]
         return url
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Origins allowed to call the API from a browser."""
+        if self.CORS_ORIGINS.strip():
+            return [origin.strip().rstrip("/") for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        parsed = urlsplit(self.FRONTEND_URL)
+        return [f"{parsed.scheme}://{parsed.netloc}"]
 
     @model_validator(mode="after")
     def require_production_secrets(self) -> "Settings":

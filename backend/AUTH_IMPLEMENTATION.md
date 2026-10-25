@@ -117,6 +117,7 @@ The JWT token contains:
 ```json
 {
   "sub": "1",              // User ID
+  "ver": 0,                // users.token_version; see "Revoking sessions"
   "email": "user@example.com",
   "username": "user",
   "exp": 1730000000,       // Expiration timestamp
@@ -166,6 +167,14 @@ JWT_ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 days
 # Magic Link Settings
 MAGIC_LINK_EXPIRE_MINUTES=15
 FRONTEND_URL=http://localhost:5173
+
+# Magic link rate limits (per window, per email and per client IP; over the limit: 429)
+MAGIC_LINK_RATE_LIMIT_WINDOW_MINUTES=60
+MAGIC_LINK_RATE_LIMIT_PER_EMAIL=5
+MAGIC_LINK_RATE_LIMIT_PER_IP=20
+# Reverse proxies in front of the app; the client IP is read from X-Forwarded-For
+# this many entries from the right (Railway: 1, 0 = ignore the header)
+TRUSTED_PROXY_HOPS=1
 ```
 
 **IMPORTANT:** Change `JWT_SECRET_KEY` to a secure random value in production!
@@ -185,13 +194,20 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
    - Magic links expire in 15 minutes
    - JWT tokens expire in 7 days (configurable)
    - Used magic links are marked and cannot be reused
+   - Using a link also invalidates every other outstanding link for that email
+   - Use is one atomic `UPDATE ... RETURNING`, so concurrent requests cannot
+     both log in with the same link
 
-3. **No Cookies**
+3. **Hashed at Rest**
+   - Only the SHA-256 of each magic link token is stored; the token itself
+     exists only in the email
+
+4. **No Cookies**
    - JWT tokens sent via Authorization header
    - Frontend manages token storage
    - No CSRF vulnerabilities
 
-4. **User Verification**
+5. **User Verification**
    - Email-based identity verification
    - Automatic user creation on first login
    - Active user checks on each request
@@ -267,7 +283,7 @@ The system creates two new tables:
 
 ### `magic_links` table
 - `id` (primary key)
-- `token` (unique, indexed)
+- `token_hash` (SHA-256 hex of the token; unique, indexed)
 - `email` (indexed)
 - `user_id` (foreign key, nullable)
 - `is_used`
@@ -339,6 +355,50 @@ async function fetchProtected(url) {
 - When updating profile, chosen username exists
 - Choose a different username
 
+## Roles
+
+Every user has a `role`: `default`, `moderator` or `admin`. New users always
+start as `default`. No HTTP request can change a role, including `PUT /auth/me`
+and signup; the first user to sign up is not special.
+
+Roles are granted from the command line, against a user who has logged in once:
+
+```bash
+# Development
+./dev.sh shell
+python -m app.cli grant-role someone@example.com admin
+
+# Production (runs locally with the Railway service's variables)
+cd backend
+railway run python -m app.cli grant-role someone@example.com admin
+```
+
+To bootstrap the first admin on a new deployment: log in through the site, then
+grant yourself `admin` with the command above.
+
+Each change is recorded in the `role_changes` table (user, old and new role,
+who made it, when). `--by` sets "who" (default: your OS user name). Any future
+admin endpoint that changes roles must go through `UserService.grant_role` so
+it is audited too.
+
+Roles are ordered `default < moderator < admin`. Protect an endpoint with
+`require_role` from `app/core/dependencies.py`; it reads the role from the
+database on every request (never from the JWT), answers 401 without a valid
+token and 403 when the role is too low:
+
+```python
+@router.delete("/{id}", dependencies=[Depends(require_role(UserRole.MODERATOR))])
+```
+
+## Revoking sessions
+
+Session JWTs carry the user's `token_version` in a `ver` claim, and
+`get_current_user` rejects a token whose `ver` differs from the database.
+Incrementing `users.token_version` therefore logs the user out everywhere.
+That happens on every role change, and when the user calls
+`POST /auth/logout-all`. Tokens without a `ver` claim (issued before this
+existed) are rejected.
+
 ## Future Enhancements
 
 Potential improvements:
@@ -347,5 +407,4 @@ Potential improvements:
 - Two-factor authentication (2FA)
 - OAuth integration (Google, GitHub, etc.)
 - Refresh tokens for longer sessions
-- User roles and permissions
 - Account deletion and data export
