@@ -103,6 +103,8 @@ class AuthService:
         if success:
             return True, "Magic link sent successfully"
         else:
+            # The rate limit counts rows, so an unsent link must not use up quota
+            self.magic_link_repository.delete(magic_link.id)
             return False, "Failed to send magic link"
 
     def _check_rate_limit(self, email: str, client_ip: Optional[str]) -> None:
