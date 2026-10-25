@@ -661,10 +661,6 @@ export type GetStatementsByStatusApiV1StatementsStatusStatusGetData = {
 
 export type GetStatementsByStatusApiV1StatementsStatusStatusGetErrors = {
   /**
-   * Status other than verified and the caller is not a moderator or admin
-   */
-  403: unknown
-  /**
    * Validation Error
    */
   422: HttpValidationError

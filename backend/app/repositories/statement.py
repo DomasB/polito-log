@@ -5,6 +5,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app.repositories.base import BaseRepository
 from app.models.statement import Statement, StatementStatus
+from app.schemas.statement import StatementSearchFilters
 
 
 def _escape_like(text: str) -> str:
@@ -69,9 +70,8 @@ class StatementRepository(BaseRepository[Statement]):
             List of Statement instances
         """
         return (
-            self._with_statuses(self.db.query(Statement), statuses)
+            self._active(statuses)
             .filter(Statement.politician_name == politician_name)
-            .filter(Statement.is_active == True)
             .offset(skip)
             .limit(limit)
             .all()
@@ -97,9 +97,8 @@ class StatementRepository(BaseRepository[Statement]):
             List of Statement instances
         """
         return (
-            self._with_statuses(self.db.query(Statement), statuses)
+            self._active(statuses)
             .filter(Statement.party == party)
-            .filter(Statement.is_active == True)
             .offset(skip)
             .limit(limit)
             .all()
@@ -125,9 +124,8 @@ class StatementRepository(BaseRepository[Statement]):
             List of Statement instances
         """
         return (
-            self._with_statuses(self.db.query(Statement), statuses)
+            self._active(statuses)
             .filter(Statement.status == status)
-            .filter(Statement.is_active == True)
             .offset(skip)
             .limit(limit)
             .all()
@@ -135,53 +133,45 @@ class StatementRepository(BaseRepository[Statement]):
 
     def search_statements(
         self,
-        search_text: Optional[str] = None,
+        filters: StatementSearchFilters,
         skip: int = 0,
         limit: int = 100,
-        *,
-        statuses: Optional[Sequence[StatementStatus]] = None,
-        statuses_not: Optional[Sequence[StatementStatus]] = None,
-        politicians: Optional[Sequence[str]] = None,
-        parties: Optional[Sequence[str]] = None,
-        categories: Optional[Sequence[str]] = None,
     ) -> List[Statement]:
         """
         Search active statements. Every given filter must hold (AND); the
         values of one list filter are alternatives (OR).
 
+        Takes the request-shape schema directly: the one place a repository
+        depends on app.schemas, to avoid restating six filters as kwargs.
+
         Args:
-            search_text: Substring of statement_text, politician_name or party
-                (case-insensitive, % and _ literal)
+            filters: q is a substring of statement_text, politician_name or
+                party (case-insensitive, % and _ literal); status is one of /
+                status_not none of the given statuses; politician, party and
+                category each match one of their values (see _text_match)
             skip: Number of records to skip
             limit: Maximum number of records to return
-            statuses: Status is one of these
-            statuses_not: Status is none of these
-            politicians: politician_name matches one of these (see _text_match)
-            parties: party matches one of these (see _text_match)
-            categories: category matches one of these (see _text_match)
 
         Returns:
             List of Statement instances
         """
-        query = self._with_statuses(
-            self.db.query(Statement).filter(Statement.is_active == True), statuses
-        )
-        if search_text:
+        query = self._active(filters.status or None)
+        if filters.q:
             query = query.filter(
                 or_(
-                    _contains(Statement.statement_text, search_text),
-                    _contains(Statement.politician_name, search_text),
-                    _contains(Statement.party, search_text),
+                    _contains(Statement.statement_text, filters.q),
+                    _contains(Statement.politician_name, filters.q),
+                    _contains(Statement.party, filters.q),
                 )
             )
-        if statuses_not:
-            query = query.filter(Statement.status.not_in(statuses_not))
-        if politicians:
-            query = query.filter(_text_match(Statement.politician_name, politicians))
-        if parties:
-            query = query.filter(_text_match(Statement.party, parties))
-        if categories:
-            query = query.filter(_text_match(Statement.category, categories))
+        if filters.status_not:
+            query = query.filter(Statement.status.not_in(filters.status_not))
+        if filters.politician:
+            query = query.filter(_text_match(Statement.politician_name, filters.politician))
+        if filters.party:
+            query = query.filter(_text_match(Statement.party, filters.party))
+        if filters.category:
+            query = query.filter(_text_match(Statement.category, filters.category))
         return query.offset(skip).limit(limit).all()
 
     def get_active_statements(
@@ -202,8 +192,7 @@ class StatementRepository(BaseRepository[Statement]):
             List of Statement instances
         """
         return (
-            self._with_statuses(self.db.query(Statement), statuses)
-            .filter(Statement.is_active == True)
+            self._active(statuses)
             .offset(skip)
             .limit(limit)
             .all()
@@ -231,6 +220,12 @@ class StatementRepository(BaseRepository[Statement]):
             .offset(skip)
             .limit(limit)
             .all()
+        )
+
+    def _active(self, statuses: Optional[Sequence[StatementStatus]]) -> Query:
+        """Active statements, restricted to `statuses` (None means all)."""
+        return self._with_statuses(self.db.query(Statement), statuses).filter(
+            Statement.is_active == True
         )
 
     @staticmethod

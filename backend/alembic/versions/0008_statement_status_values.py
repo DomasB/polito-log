@@ -7,6 +7,11 @@ CHECK constraint, the same way users.role is stored (0002_user_role).
 Downgrade restores the native enum. It has no 'rejected' label, so rejected
 statements become pending on downgrade: that mapping is lossy.
 
+Not compatible with the previous code: it maps the column by member name, so
+until the new code is live it fails reading statements (LookupError on
+'pending') and writing them (the CHECK rejects 'PENDING'). That lasts only
+between the pre-deploy migration and the new version taking traffic.
+
 Revision ID: 0008_statement_status_values
 Revises: 0007_magic_link_request_ip
 Create Date: 2026-10-25 18:00:00

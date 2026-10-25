@@ -137,10 +137,16 @@ def test_party_endpoint_visibility(api, corpus, viewers, tag, viewer, expected):
     assert keys(response, tag) == expected
 
 
-@pytest.mark.parametrize("viewer", ["anonymous", "default"])
-def test_status_endpoint_forbids_non_verified_for_non_moderators(api, corpus, viewers, viewer):
-    response = api.get(f"{BASE}/status/pending", headers=viewers[viewer])
-    assert response.status_code == 403
+@pytest.mark.parametrize(
+    "viewer, expected",
+    [("anonymous", []), ("default", []), ("moderator", ["pending"])],
+)
+def test_status_endpoint_shows_non_verified_only_to_moderators(
+    api, corpus, viewers, tag, viewer, expected
+):
+    response = api.get(f"{BASE}/status/pending", params={"limit": 500}, headers=viewers[viewer])
+    assert response.status_code == 200
+    assert keys(response, tag) == expected
 
 
 @pytest.mark.parametrize("viewer", ["anonymous", "default"])
@@ -190,6 +196,12 @@ def test_status_in_and_not_in(api, corpus, viewers, tag, params, expected):
 def test_invalid_status_value_is_rejected(api, viewers):
     response = api.get(SEARCH, params={"status": "bogus"}, headers=viewers["moderator"])
     assert response.status_code == 422
+
+
+def test_unknown_search_param_is_rejected(api):
+    response = api.get(SEARCH, params={"date": "x"})
+    assert response.status_code == 422
+    assert any(error["loc"][-1] == "date" for error in response.json()["detail"])
 
 
 # --- Text matchers ----------------------------------------------------------

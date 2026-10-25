@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 from app.models.statement import StatementStatus
@@ -49,3 +49,54 @@ class StatementInDB(StatementBase):
 class StatementResponse(StatementInDB):
     """Schema for statement API responses."""
     pass
+
+
+TEXT_MATCH_RULE = (
+    "Repeat the parameter to match any of several values (OR). An unquoted value "
+    "matches as a case-insensitive substring (`%` and `_` are literal); a value "
+    'wrapped in double quotes, e.g. `"LSDP"`, matches the whole field exactly, '
+    "case-insensitively."
+)
+
+
+class StatementSearchFilters(BaseModel):
+    """Filters for statement search. Every given filter must match (AND)."""
+
+    q: Optional[str] = Field(
+        None,
+        min_length=1,
+        description=(
+            "Free text, matched as a case-insensitive substring of the statement text, "
+            "politician name or party (`%` and `_` are literal). Optional."
+        ),
+    )
+    status: Optional[List[StatementStatus]] = Field(
+        None,
+        description=(
+            "Only statements with one of these statuses (repeatable; OR / IN). "
+            "Moderators and admins only."
+        ),
+    )
+    status_not: Optional[List[StatementStatus]] = Field(
+        None,
+        description=(
+            "Exclude statements with any of these statuses (repeatable; NOT IN). "
+            "Moderators and admins only."
+        ),
+    )
+    politician: Optional[List[str]] = Field(
+        None, description=f"Politician name filter. {TEXT_MATCH_RULE}"
+    )
+    party: Optional[List[str]] = Field(None, description=f"Party filter. {TEXT_MATCH_RULE}")
+    category: Optional[List[str]] = Field(
+        None, description=f"Category filter. {TEXT_MATCH_RULE}"
+    )
+
+
+class StatementSearchQuery(StatementSearchFilters):
+    """Query parameters of the search endpoint: filters plus paging. Unknown keys are rejected."""
+
+    skip: int = Field(0, ge=0, description="Number of records to skip")
+    limit: int = Field(100, ge=1, le=500, description="Maximum number of records to return")
+
+    model_config = ConfigDict(extra="forbid")

@@ -8,7 +8,7 @@ import StatementCard from '@/components/StatementCard.vue'
 import AppLoader from '@/components/AppLoader.vue'
 import SmartSearch from './search/ui/SmartSearch.vue'
 import type { SearchQuery } from './search/core/types'
-import { toStatementSearchParams } from './search/core/query'
+import { toStatementSearchParams, type StatementSearchParams } from './search/core/query'
 import { setStatusFilterEnabled } from './search/plugins'
 
 const {
@@ -23,14 +23,36 @@ const {
 
 const authStore = useAuthStore()
 
+const activeQuery = ref<SearchQuery>({ text: '', filters: [] })
+
 // Only moderators and admins may filter by status
+const canModerate = computed(() => {
+  const role = authStore.user?.role
+  return role === 'moderator' || role === 'admin'
+})
+
+// After the first run, a role change (e.g. logout) re-runs the search so a
+// status chip the new role may not use stops being applied.
+let roleWatchStarted = false
 watch(
-  () => authStore.user?.role,
-  (role) => setStatusFilterEnabled(role === 'moderator' || role === 'admin'),
+  canModerate,
+  (allowed) => {
+    setStatusFilterEnabled(allowed)
+    if (roleWatchStarted) void reload()
+    roleWatchStarted = true
+  },
   { immediate: true },
 )
 
-const activeQuery = ref<SearchQuery>({ text: '', filters: [] })
+/** Search params for `query`, without status filters the current role may not send. */
+function searchParams(query: SearchQuery): StatementSearchParams {
+  const params = toStatementSearchParams(query)
+  if (!canModerate.value) {
+    delete params.status
+    delete params.status_not
+  }
+  return params
+}
 const searchPending = ref(false)
 const busy = computed(() => loading.value || searchPending.value)
 
@@ -63,14 +85,13 @@ async function handleCreateStatement() {
 async function handleSearch(query: SearchQuery) {
   searchPending.value = false
   const changed =
-    JSON.stringify(toStatementSearchParams(query)) !==
-    JSON.stringify(toStatementSearchParams(activeQuery.value))
+    JSON.stringify(searchParams(query)) !== JSON.stringify(searchParams(activeQuery.value))
   activeQuery.value = query
   if (changed) await reload()
 }
 
 async function reload() {
-  await searchStatements(toStatementSearchParams(activeQuery.value))
+  await searchStatements(searchParams(activeQuery.value))
 }
 </script>
 

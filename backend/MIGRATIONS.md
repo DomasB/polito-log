@@ -47,12 +47,17 @@ tests. Commit the migration with the model change.
 
 ### Guidelines
 
-1. One logical change per migration.
+1. One logical change per migration. A storage-format change may include the
+   value it exists to admit: `0008_statement_status_values` moves
+   `statements.status` to value storage and adds `rejected` in one step.
 2. Write `downgrade()` too, and try it: `alembic downgrade -1`, then upgrade again.
 3. When adding a NOT NULL column to a table with rows, give it a
    `server_default`, or add it nullable, backfill, then set NOT NULL.
 4. Keep migrations compatible with the running version where possible: the new
-   schema is live briefly before the new code is.
+   schema is live briefly before the new code is. When that isn't possible, say
+   so in the migration's docstring: which operations the old code fails on until
+   the new code is live. That is acceptable for the short window between the
+   pre-deploy migration and the new version taking traffic.
 
 ## Useful commands
 

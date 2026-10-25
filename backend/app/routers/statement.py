@@ -1,13 +1,14 @@
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.services.statement import StatementPermissionError, StatementService
+from app.services.statement import StatementService
 from app.schemas.statement import (
     StatementCreate,
     StatementUpdate,
-    StatementResponse
+    StatementResponse,
+    StatementSearchQuery,
 )
 from app.models.statement import StatementStatus
 from app.models.user import User
@@ -23,10 +24,6 @@ router = APIRouter(
 def get_statement_service(db: Session = Depends(get_db)) -> StatementService:
     """Dependency for getting StatementService instance."""
     return StatementService(db)
-
-
-def _forbidden(error: StatementPermissionError) -> HTTPException:
-    return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))
 
 
 VISIBILITY_NOTE = (
@@ -63,7 +60,7 @@ def create_statement(
     Returns:
         Created statement
     """
-    return service.create_statement(statement, viewer=current_user)
+    return service.create_statement(statement, current_user=current_user)
 
 
 @router.get(
@@ -93,7 +90,7 @@ def get_statements(
         List of statements
     """
     return service.get_all_statements(
-        skip=skip, limit=limit, active_only=active_only, viewer=current_user
+        skip=skip, limit=limit, active_only=active_only, current_user=current_user
     )
 
 
@@ -163,12 +160,10 @@ def update_statement(
         Updated statement
 
     Raises:
-        HTTPException: 403 if a non-moderator sets status, 404 if statement not found
+        StatementPermissionError: 403 (app-level handler) if a non-moderator sets status
+        HTTPException: 404 if statement not found
     """
-    try:
-        statement = service.update_statement(statement_id, statement_data, viewer=current_user)
-    except StatementPermissionError as error:
-        raise _forbidden(error)
+    statement = service.update_statement(statement_id, statement_data, current_user=current_user)
     if not statement:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -236,7 +231,7 @@ def get_statements_by_politician(
         List of statements
     """
     return service.get_statements_by_politician(
-        politician_name, skip, limit, viewer=current_user
+        politician_name, skip, limit, current_user=current_user
     )
 
 
@@ -265,7 +260,7 @@ def get_statements_by_party(
     Returns:
         List of statements
     """
-    return service.get_statements_by_party(party, skip, limit, viewer=current_user)
+    return service.get_statements_by_party(party, skip, limit, current_user=current_user)
 
 
 @router.get(
@@ -273,11 +268,10 @@ def get_statements_by_party(
     response_model=List[StatementResponse],
     summary="Get statements by status",
     description=(
-        "Get statements with the given status. Anonymous and default-role users may "
-        "only ask for `verified` (any other status answers 403); moderators and admins "
-        "may ask for any status."
-    ),
-    responses={403: {"description": "Status other than verified and the caller is not a moderator or admin"}}
+        "Get statements with the given status. Anonymous and default-role users only "
+        "get `verified` statements, so any other status gives them an empty list; "
+        "moderators and admins may ask for any status."
+    )
 )
 def get_statements_by_status(
     status: StatementStatus,
@@ -298,18 +292,7 @@ def get_statements_by_status(
     Returns:
         List of statements
     """
-    try:
-        return service.get_statements_by_status(status, skip, limit, viewer=current_user)
-    except StatementPermissionError as error:
-        raise _forbidden(error)
-
-
-TEXT_MATCH_RULE = (
-    "Repeat the parameter to match any of several values (OR). An unquoted value "
-    "matches as a case-insensitive substring (`%` and `_` are literal); a value "
-    'wrapped in double quotes, e.g. `"LSDP"`, matches the whole field exactly, '
-    "case-insensitively."
-)
+    return service.get_statements_by_status(status, skip, limit, current_user=current_user)
 
 
 @router.get(
@@ -322,44 +305,12 @@ TEXT_MATCH_RULE = (
         "parameter excludes its values (NOT IN). With no parameters, all visible "
         f"statements are returned. {VISIBILITY_NOTE} Only moderators and admins may use "
         "`status` and `status_not` (403 otherwise). Returns a plain list paged by "
-        "`skip`/`limit`, without a total."
+        "`skip`/`limit`, without a total. Unknown parameters answer 422."
     ),
     responses={403: {"description": "`status` or `status_not` sent by a caller who is not a moderator or admin"}}
 )
 def search_statements(
-    q: Optional[str] = Query(
-        None,
-        min_length=1,
-        description=(
-            "Free text, matched as a case-insensitive substring of the statement text, "
-            "politician name or party (`%` and `_` are literal). Optional."
-        ),
-    ),
-    status: Optional[List[StatementStatus]] = Query(
-        None,
-        description=(
-            "Only statements with one of these statuses (repeatable; OR / IN). "
-            "Moderators and admins only."
-        ),
-    ),
-    status_not: Optional[List[StatementStatus]] = Query(
-        None,
-        description=(
-            "Exclude statements with any of these statuses (repeatable; NOT IN). "
-            "Moderators and admins only."
-        ),
-    ),
-    politician: Optional[List[str]] = Query(
-        None, description=f"Politician name filter. {TEXT_MATCH_RULE}"
-    ),
-    party: Optional[List[str]] = Query(
-        None, description=f"Party filter. {TEXT_MATCH_RULE}"
-    ),
-    category: Optional[List[str]] = Query(
-        None, description=f"Category filter. {TEXT_MATCH_RULE}"
-    ),
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(100, ge=1, le=500, description="Maximum number of records to return"),
+    params: Annotated[StatementSearchQuery, Query()],
     service: StatementService = Depends(get_statement_service),
     current_user: Optional[User] = Depends(get_current_user_optional)
 ) -> List[StatementResponse]:
@@ -367,14 +318,7 @@ def search_statements(
     Search statements by text and filters.
 
     Args:
-        q: Free-text query, optional
-        status: Statuses to include (moderators only)
-        status_not: Statuses to exclude (moderators only)
-        politician: Politician name matchers
-        party: Party matchers
-        category: Category matchers
-        skip: Number of records to skip
-        limit: Maximum number of records to return
+        params: Filters plus skip/limit; unknown keys answer 422
         service: Statement service instance
         current_user: Requesting user, or None if anonymous
 
@@ -382,19 +326,8 @@ def search_statements(
         List of matching statements
 
     Raises:
-        HTTPException: 403 if a non-moderator filters by status
+        StatementPermissionError: 403 (app-level handler) if a non-moderator filters by status
     """
-    try:
-        return service.search_statements(
-            q,
-            skip,
-            limit,
-            statuses=status,
-            statuses_not=status_not,
-            politicians=politician,
-            parties=party,
-            categories=category,
-            viewer=current_user,
-        )
-    except StatementPermissionError as error:
-        raise _forbidden(error)
+    return service.search_statements(
+        params, params.skip, params.limit, current_user=current_user
+    )

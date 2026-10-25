@@ -143,6 +143,15 @@ async function addStatement() {
     status: 'pending'
   })
 }
+
+// Search with typed filters (StatementSearchFilters: q, status, status_not,
+// politician, party, category). Repeated values are OR; params AND together.
+async function findPending() {
+  await searchStatements(
+    { status: ['pending'], politician: ['Smith'] },
+    { limit: 20 }
+  )
+}
 </script>
 
 <template>
@@ -167,7 +176,7 @@ import type {
   StatementResponse,     // Complete statement with all fields
   StatementCreate,       // For creating statements
   StatementUpdate,       // For updating statements
-  StatementStatus        // Enum: pending | verified | disputed | retracted
+  StatementStatus        // Enum: pending | verified | disputed | retracted | rejected
 } from '@/api/types.gen'
 ```
 
@@ -250,6 +259,15 @@ getStatementsByStatusApiV1StatementsStatusStatusGet({
 })
 ```
 
+### Status visibility
+
+Anonymous and default-role users only get `verified` statements from the list,
+search, politician, party and status endpoints; `/status/{status}` with any
+other status gives them an empty list. Moderators and admins get every status.
+On `/statements/search/`, `status` and `status_not` answer 403 for
+non-moderators, and unknown query params answer 422. `GET /statements/{id}`
+returns a statement whatever its status.
+
 ## Error Handling
 
 All API calls return a tuple `{ data, error }`:
@@ -297,7 +315,7 @@ const {
   createStatement,      // (data) => Promise<StatementResponse | null>
   updateStatement,      // (id, updates) => Promise<StatementResponse | null>
   deleteStatement,      // (id, soft?) => Promise<boolean>
-  searchStatements,     // (query, options?) => Promise<StatementResponse[]>
+  searchStatements,     // (filters: StatementSearchFilters, options?) => Promise<StatementResponse[]>
   fetchByPolitician,    // (name, options?) => Promise<StatementResponse[]>
   fetchByParty,         // (party, options?) => Promise<StatementResponse[]>
   clearError,           // () => void

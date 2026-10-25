@@ -247,7 +247,7 @@ export const getStatementsByPartyApiV1StatementsPartyPartyGet = <
 /**
  * Get statements by status
  *
- * Get statements with the given status. Anonymous and default-role users may only ask for `verified` (any other status answers 403); moderators and admins may ask for any status.
+ * Get statements with the given status. Anonymous and default-role users only get `verified` statements, so any other status gives them an empty list; moderators and admins may ask for any status.
  */
 export const getStatementsByStatusApiV1StatementsStatusStatusGet = <
   ThrowOnError extends boolean = false,
@@ -271,7 +271,7 @@ export const getStatementsByStatusApiV1StatementsStatusStatusGet = <
 /**
  * Search statements
  *
- * Search active statements by free text and filters. Every given parameter must match (AND); repeated values of one parameter are alternatives (OR); a `_not` parameter excludes its values (NOT IN). With no parameters, all visible statements are returned. Anonymous and default-role users only get statements with status `verified`; moderators and admins get every status. Only moderators and admins may use `status` and `status_not` (403 otherwise). Returns a plain list paged by `skip`/`limit`, without a total.
+ * Search active statements by free text and filters. Every given parameter must match (AND); repeated values of one parameter are alternatives (OR); a `_not` parameter excludes its values (NOT IN). With no parameters, all visible statements are returned. Anonymous and default-role users only get statements with status `verified`; moderators and admins get every status. Only moderators and admins may use `status` and `status_not` (403 otherwise). Returns a plain list paged by `skip`/`limit`, without a total. Unknown parameters answer 422.
  */
 export const searchStatementsApiV1StatementsSearchGet = <ThrowOnError extends boolean = false>(
   options?: Options<SearchStatementsApiV1StatementsSearchGetData, ThrowOnError>,
