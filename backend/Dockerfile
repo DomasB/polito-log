@@ -65,6 +65,11 @@ COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 # Copy application code (relative to backend/ directory)
 COPY --chown=appuser:appuser app ./app
 
+# Copy Alembic configuration and migrations. They run as a separate step
+# (Railway preDeployCommand: python -m app.cli migrate), not at container start.
+COPY --chown=appuser:appuser alembic.ini ./alembic.ini
+COPY --chown=appuser:appuser alembic ./alembic
+
 # Switch to non-root user
 USER appuser
 
