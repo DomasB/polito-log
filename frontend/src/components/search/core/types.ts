@@ -2,11 +2,11 @@ import type { Component } from 'vue'
 
 export type PluginType = 'filter' | 'operator' | 'action' | 'global-suggestion'
 
-
-
 export interface SearchContext {
     // Can be expanded later for datasetId, etc.
     datasetId?: string
+    // Aborted when a newer suggestion request supersedes this one
+    signal?: AbortSignal
 }
 
 export interface SearchInteractionContext {
@@ -59,8 +59,8 @@ export interface FilterPlugin extends BasePlugin {
 // --- Operator Plugin ---
 export interface OperatorPlugin extends BasePlugin {
     type: 'operator'
-    symbol: string // e.g. ':'
-    label: string  // e.g. 'Equals'
+    symbols: string[] // e.g. [':', '=']
+    label: string     // e.g. 'Equals'
 }
 
 // --- Action Plugin ---
@@ -76,6 +76,8 @@ export interface GlobalSuggestionPlugin extends BasePlugin {
     type: 'global-suggestion'
     getSuggestions: (context: SearchContext) => Promise<Suggestion[]>
 }
+
+export type SearchPlugin = FilterPlugin | OperatorPlugin | ActionPlugin | GlobalSuggestionPlugin
 
 // --- Token Definitions ---
 
@@ -95,9 +97,19 @@ export interface TextToken extends BaseToken {
 export interface FilterToken extends BaseToken {
     type: 'filter'
     filterKey: string
-    operator: string
+    operator: string   // the symbol as typed, e.g. ':'
+    operatorId: string // the operator plugin id, e.g. 'equals'
     value: any
     pluginId: string
+    // Set when the operator or value is invalid; the token is shown but not applied
+    error?: string
 }
 
 export type SearchToken = TextToken | FilterToken
+
+// --- Query emitted to consumers ---
+
+export interface SearchQuery {
+    text: string
+    filters: { pluginId: string; key: string; operatorId: string; value: any }[]
+}

@@ -1,148 +1,138 @@
-import { ref, computed, watch } from 'vue'
-import type { SearchToken, Suggestion, SearchContext } from './types'
-import { searchParser } from './parser'
+import { ref, shallowRef, watch, getCurrentScope, onScopeDispose } from 'vue'
+import type { SearchToken, Suggestion, SearchContext, SearchInteractionContext } from './types'
+import { SearchParser } from './parser'
 import { searchRegistry } from './registry'
-import { generateId } from './id'
 
-export function useSearch() {
-    const query = ref('')
-    const tokens = ref<SearchToken[]>([])
-    const suggestions = ref<Suggestion[]>([])
-    const activeIndex = ref(-1)
+export const MAX_SUGGESTIONS = 10
+const SUGGESTION_DEBOUNCE_MS = 150
 
-    // Context can be dynamic
-    const context = ref<SearchContext>({})
-
-    // Parse query when it changes
-    // Note: In a real "Smart Search", the query string might be just the *current* typing buffer,
-    // and tokens are stored separately. 
-    // However, for a unified input where everything is text until parsed:
-    // We might want to maintain a "raw" string and a "parsed" state.
-
-    // Strategy:
-    // The input field displays `tokens` + `currentInput`.
-    // When user types, we update `currentInput`.
-    // When user presses Enter or Space, we try to tokenize `currentInput`.
-    // If it matches a filter, it becomes a Token.
-    // If not, it stays as text (or becomes a TextToken).
-
-    // Actually, the requirement says "Visual Tokenization". 
-    // Usually this means:
-    // [Status: Error] [Date: Yesterday] | <cursor>
-
-    // So we have a list of committed tokens, and a current "buffer" string.
+/**
+ * Committed tokens plus the current typing buffer:
+ * [status:verified] [budget] | <cursor>
+ */
+export function useSearch(registry = searchRegistry) {
+    const parser = new SearchParser(registry)
 
     const buffer = ref('')
+    const tokens = shallowRef<SearchToken[]>([])
+    const suggestions = shallowRef<Suggestion[]>([])
+    const activeIndex = ref(-1)
 
-    const allTokens = computed(() => {
-        // Combine committed tokens with the current buffer (parsed tentatively)
-        // But usually the buffer is just raw text until committed.
-        return tokens.value
-    })
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined
+    let controller: AbortController | null = null
+    // Bumped whenever pending suggestions become stale
+    let requestSeq = 0
 
-    async function updateSuggestions() {
-        if (!buffer.value) {
-            // Show global suggestions (recent searches, etc)
-            suggestions.value = await searchRegistry.getGlobalSuggestions(context.value)
-            return
+    function cancelPending() {
+        clearTimeout(debounceTimer)
+        debounceTimer = undefined
+        controller?.abort()
+        controller = null
+        requestSeq++
+    }
+
+    async function computeSuggestions(text: string, context: SearchContext): Promise<Suggestion[]> {
+        if (!text) {
+            // Global suggestions (recent searches, etc.)
+            return registry.getGlobalSuggestions(context)
         }
 
-        // Check if we are typing a key (e.g. "sta")
-        // Or a value (e.g. "status:err")
-
-        const match = buffer.value.match(/^([a-zA-Z0-9_]+)([:=><!~]+)(.*)$/)
+        const match = parser.matchFilter(text)
         if (match) {
-            // Typing a value
-            const key = match[1]
-            const val = match[3] || ''
+            // Typing a value, e.g. "status:ver"; unknown keys get nothing
+            const filter = registry.getFilterByKey(match.key)
+            return filter ? filter.getSuggestions(match.value, context) : []
+        }
 
-            if (key) {
-                const filter = searchRegistry.getFilterByKey(key)
-                if (filter) {
-                    suggestions.value = await filter.getSuggestions(val, context.value)
-                    return
-                }
-            }
-        } else {
-            // Typing a key?
-            // Filter all registered keys that match the buffer
-            const filters = searchRegistry.getAllFilters()
-            const matchingFilters = filters.filter(f =>
-                f.keys.some(k => k.startsWith(buffer.value))
-            )
+        // Typing a key, e.g. "sta"
+        return registry.getAllFilters()
+            .filter(f => f.keys.some(k => k.startsWith(text)))
+            .flatMap(f => f.keys.map((k): Suggestion => ({
+                label: `${k}:`,
+                value: `${k}:`,
+                type: 'key',
+                description: `Filter by ${f.id}`
+            })))
+    }
 
-            suggestions.value = matchingFilters.flatMap(f =>
-                f.keys.map(k => ({
-                    label: `${k}:`,
-                    value: `${k}:`,
-                    type: 'key',
-                    description: `Filter by ${f.id}`
-                }))
-            )
+    async function fetchSuggestions(seq: number) {
+        debounceTimer = undefined
+        const ctrl = new AbortController()
+        controller = ctrl
+        try {
+            const result = await computeSuggestions(buffer.value, { signal: ctrl.signal })
+            if (seq !== requestSeq) return
+            suggestions.value = result.slice(0, MAX_SUGGESTIONS)
+            activeIndex.value = -1
+        } catch (e) {
+            if (seq !== requestSeq) return
+            console.error('Error fetching suggestions:', e)
+            suggestions.value = []
+        } finally {
+            if (controller === ctrl) controller = null
         }
     }
 
-    function addToken(token: SearchToken) {
-        tokens.value.push(token)
-        buffer.value = ''
+    function updateSuggestions() {
+        cancelPending()
+        const seq = requestSeq
+        debounceTimer = setTimeout(() => void fetchSuggestions(seq), SUGGESTION_DEBOUNCE_MS)
+    }
+
+    /** Cancel pending suggestion work and hide the list (blur, Escape). */
+    function close() {
+        cancelPending()
         suggestions.value = []
         activeIndex.value = -1
     }
 
+    function addTokens(newTokens: SearchToken[]) {
+        tokens.value = [...tokens.value, ...newTokens]
+        buffer.value = ''
+        close()
+    }
+
+    function addToken(token: SearchToken) {
+        addTokens([token])
+    }
+
     function removeToken(index: number) {
-        tokens.value.splice(index, 1)
+        tokens.value = tokens.value.filter((_, i) => i !== index)
     }
 
     function clear() {
         tokens.value = []
         buffer.value = ''
-        suggestions.value = []
-        activeIndex.value = -1
+        close()
     }
 
     function selectSuggestion(suggestion: Suggestion) {
         if (suggestion.type === 'key') {
             buffer.value = suggestion.value
         } else if (suggestion.type === 'value') {
-            const match = buffer.value.match(/^([a-zA-Z0-9_]+)([:=><!~]+)(.*)$/)
+            const match = parser.matchFilter(buffer.value)
             if (match) {
-                const key = match[1]
-                const op = match[2]
-                if (key && op) {
-                    addToken({
-                        id: generateId(),
-                        type: 'filter',
-                        filterKey: key,
-                        operator: op,
-                        value: suggestion.value,
-                        pluginId: searchRegistry.getFilterByKey(key)?.id || 'unknown',
-                        raw: `${key}${op}${suggestion.value}`
-                    })
-                }
+                // Go through the parser so validation and operatorId stay consistent
+                addTokens(parser.parse(`${match.key}${match.symbol}${suggestion.value}`))
             }
         }
         activeIndex.value = -1
     }
 
     function commit() {
-        if (activeIndex.value >= 0 && suggestions.value[activeIndex.value]) {
-            selectSuggestion(suggestions.value[activeIndex.value]!)
+        const active = suggestions.value[activeIndex.value]
+        if (activeIndex.value >= 0 && active) {
+            selectSuggestion(active)
             return
         }
 
-        if (buffer.value.trim()) {
-            addToken({
-                id: generateId(),
-                type: 'text',
-                value: buffer.value,
-                raw: buffer.value
-            })
-        }
+        const parsed = parser.parse(buffer.value)
+        if (parsed.length > 0) addTokens(parsed)
     }
 
     function handleKeyDown(e: KeyboardEvent) {
         // 1. Create context for plugins
-        const context = {
+        const context: SearchInteractionContext = {
             buffer: buffer.value,
             tokens: tokens.value,
             suggestions: suggestions.value,
@@ -151,17 +141,14 @@ export function useSearch() {
             addToken,
             removeToken,
             selectSuggestion: (idx: number) => {
-                if (suggestions.value[idx]) selectSuggestion(suggestions.value[idx]!)
+                const s = suggestions.value[idx]
+                if (s) selectSuggestion(s)
             },
-            clearSuggestions: () => {
-                suggestions.value = []
-                activeIndex.value = -1
-            }
+            clearSuggestions: close
         }
 
         // 2. Check plugins
-        const plugins = searchRegistry.getAllPlugins()
-        for (const plugin of plugins) {
+        for (const plugin of registry.getAllPlugins()) {
             if (plugin.onKeyDown && plugin.onKeyDown(e, context)) {
                 return // Handled by plugin
             }
@@ -179,8 +166,7 @@ export function useSearch() {
                 e.preventDefault()
                 commit()
             } else if (e.key === 'Escape') {
-                suggestions.value = []
-                activeIndex.value = -1
+                close()
             }
         } else {
             if (e.key === 'Enter') {
@@ -197,6 +183,8 @@ export function useSearch() {
         activeIndex.value = -1
     })
 
+    if (getCurrentScope()) onScopeDispose(cancelPending)
+
     return {
         buffer,
         tokens,
@@ -205,6 +193,7 @@ export function useSearch() {
         addToken,
         removeToken,
         clear,
+        close,
         updateSuggestions,
         handleKeyDown,
         selectSuggestion,

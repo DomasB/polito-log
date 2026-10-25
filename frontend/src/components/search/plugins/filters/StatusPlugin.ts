@@ -1,4 +1,11 @@
-import type { FilterPlugin, Suggestion, SearchContext } from '../../core/types'
+import type { FilterPlugin, Suggestion } from '../../core/types'
+import type { StatementStatus } from '@/api/types.gen'
+
+const STATUSES = ['pending', 'verified', 'disputed', 'retracted'] as const satisfies readonly StatementStatus[]
+
+function isStatus(value: unknown): value is StatementStatus {
+    return (STATUSES as readonly unknown[]).includes(value)
+}
 
 export const StatusPlugin: FilterPlugin = {
     id: 'status',
@@ -10,9 +17,8 @@ export const StatusPlugin: FilterPlugin = {
         return raw.toLowerCase()
     },
 
-    async getSuggestions(input: string, context: SearchContext): Promise<Suggestion[]> {
-        const options = ['pending', 'verified', 'disputed', 'retracted']
-        return options
+    async getSuggestions(input: string): Promise<Suggestion[]> {
+        return STATUSES
             .filter(opt => opt.startsWith(input.toLowerCase()))
             .map(opt => ({
                 label: opt,
@@ -21,8 +27,7 @@ export const StatusPlugin: FilterPlugin = {
             }))
     },
 
-    validate(value: any) {
-        const options = ['pending', 'verified', 'disputed', 'retracted']
-        return options.includes(value) || `Invalid status: ${value}`
+    validate(value: unknown) {
+        return isStatus(value) || `Invalid status: ${value}`
     }
 }

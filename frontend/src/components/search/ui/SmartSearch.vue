@@ -1,14 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { useSearch } from '../core/state'
-import { searchRegistry } from '../core/registry'
-import { StatusPlugin } from '../plugins/filters/StatusPlugin'
+import '../plugins'
 import SearchInput from './SearchInput.vue'
 import SuggestionList from './SuggestionList.vue'
 import type { Suggestion } from '../core/types'
-
-// Register plugins (in a real app, this might happen in main.ts or a plugin loader)
-searchRegistry.register(StatusPlugin)
 
 const emit = defineEmits<{
   (e: 'search', query: string): void
@@ -19,9 +15,7 @@ const {
   tokens,
   suggestions,
   activeIndex,
-  addToken,
   removeToken,
-  updateSuggestions,
   handleKeyDown: coreHandleKeyDown,
   selectSuggestion: coreSelectSuggestion,
   commit
