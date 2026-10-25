@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { NSpace, NButton, NAlert, NEmpty, NH2 } from 'naive-ui'
 import { useStatements } from '@/composables/useStatements'
 import { useAuthStore } from '@/stores/auth'
@@ -8,6 +8,8 @@ import StatementCard from '@/components/StatementCard.vue'
 import AppLoader from '@/components/AppLoader.vue'
 import SmartSearch from './search/ui/SmartSearch.vue'
 import type { SearchQuery } from './search/core/types'
+import { toStatementSearchParams } from './search/core/query'
+import { setStatusFilterEnabled } from './search/plugins'
 
 const {
   statements,
@@ -21,23 +23,20 @@ const {
 
 const authStore = useAuthStore()
 
+// Only moderators and admins may filter by status
+watch(
+  () => authStore.user?.role,
+  (role) => setStatusFilterEnabled(role === 'moderator' || role === 'admin'),
+  { immediate: true },
+)
+
 const activeQuery = ref<SearchQuery>({ text: '', filters: [] })
 const searchPending = ref(false)
 const busy = computed(() => loading.value || searchPending.value)
 
-// Status filters are applied in the browser, over the (at most 100) fetched rows
-const visibleStatements = computed(() => {
-  const statusFilters = activeQuery.value.filters.filter((f) => f.pluginId === 'status')
-  return statements.value.filter((s) =>
-    statusFilters.every((f) =>
-      f.operatorId === 'not-equals' ? s.status !== f.value : s.status === f.value,
-    ),
-  )
-})
-
 const resultsAnnouncement = computed(() => {
   if (busy.value) return ''
-  const n = visibleStatements.value.length
+  const n = statements.value.length
   return `${n} ${n === 1 ? 'statement' : 'statements'}`
 })
 
@@ -63,19 +62,15 @@ async function handleCreateStatement() {
 
 async function handleSearch(query: SearchQuery) {
   searchPending.value = false
-  const textChanged = query.text !== activeQuery.value.text
+  const changed =
+    JSON.stringify(toStatementSearchParams(query)) !==
+    JSON.stringify(toStatementSearchParams(activeQuery.value))
   activeQuery.value = query
-  // Filter-only changes are applied client-side, no refetch needed
-  if (textChanged) await reload()
+  if (changed) await reload()
 }
 
 async function reload() {
-  const { text } = activeQuery.value
-  if (text) {
-    await searchStatements(text)
-  } else {
-    await fetchStatements()
-  }
+  await searchStatements(toStatementSearchParams(activeQuery.value))
 }
 </script>
 
@@ -100,12 +95,8 @@ async function reload() {
 
     <!-- Statements List: stays mounted under the loader while loading -->
     <AppLoader :show="busy">
-      <div v-if="visibleStatements.length > 0" class="statement-list">
-        <StatementCard
-          v-for="statement in visibleStatements"
-          :key="statement.id"
-          :statement="statement"
-        />
+      <div v-if="statements.length > 0" class="statement-list">
+        <StatementCard v-for="statement in statements" :key="statement.id" :statement="statement" />
       </div>
 
       <!-- Empty State -->

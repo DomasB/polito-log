@@ -6,6 +6,7 @@ import '../plugins'
 import SearchInput from './SearchInput.vue'
 import SuggestionList from './SuggestionList.vue'
 import { describeToken } from './describeToken'
+import { formatValues } from '../core/parser'
 import type { SearchQuery, SearchToken, Suggestion } from '../core/types'
 
 const SEARCH_DEBOUNCE_MS = 250
@@ -62,7 +63,7 @@ const announcement = ref('')
 
 function describeAdded(token: SearchToken) {
   if (token.type === 'filter' && token.error) {
-    return `${token.filterKey}${token.operator} ${token.value} is invalid and not applied`
+    return `${token.filterKey}${token.operator} ${formatValues(token.values)} is invalid and not applied`
   }
   return `${capitalize(describeToken(token))} added`
 }

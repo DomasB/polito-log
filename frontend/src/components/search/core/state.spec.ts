@@ -3,7 +3,7 @@ import { nextTick } from 'vue'
 import { useSearch, MAX_SUGGESTIONS } from './state'
 import { SearchRegistry } from './registry'
 import { StatusPlugin } from '../plugins/filters/StatusPlugin'
-import { EqualsOperator, NotEqualsOperator } from '../plugins/operators/EqualsOperator'
+import { EqualsOperator } from '../plugins/operators/EqualsOperator'
 import type { FilterPlugin, FilterToken, SearchContext, Suggestion } from './types'
 
 function enter() {
@@ -16,7 +16,6 @@ describe('useSearch', () => {
   beforeEach(() => {
     registry = new SearchRegistry()
     registry.register(EqualsOperator)
-    registry.register(NotEqualsOperator)
     registry.register(StatusPlugin)
   })
 
@@ -47,7 +46,7 @@ describe('useSearch', () => {
     const token = tokens.value[0] as FilterToken
     expect(token.type).toBe('filter')
     expect(token.operatorId).toBe('equals')
-    expect(token.value).toBe('verified')
+    expect(token.values).toEqual([{ value: 'verified', negated: false }])
     expect(token.error).toBeUndefined()
   })
 
@@ -63,13 +62,34 @@ describe('useSearch', () => {
 
   it('builds a filter token from a selected value suggestion', () => {
     const { buffer, tokens, selectSuggestion } = useSearch(registry)
-    buffer.value = 's!=ver'
+    buffer.value = 's=ver'
     selectSuggestion({ label: 'verified', value: 'verified', type: 'value' })
 
     const token = tokens.value[0] as FilterToken
-    expect(token.raw).toBe('s!=verified')
-    expect(token.operatorId).toBe('not-equals')
+    expect(token.raw).toBe('s=verified')
+    expect(token.operatorId).toBe('equals')
     expect(token.error).toBeUndefined()
+  })
+
+  it('completes the value after the last |, keeping its !', () => {
+    const { buffer, tokens, selectSuggestion } = useSearch(registry)
+    buffer.value = 'status:pending|!ver'
+    selectSuggestion({ label: 'verified', value: 'verified', type: 'value' })
+
+    expect(tokens.value[0]!.raw).toBe('status:pending|!verified')
+  })
+
+  it('marks a repeat of a committed key as an error token', () => {
+    const { buffer, tokens, handleKeyDown } = useSearch(registry)
+    buffer.value = 'status:pending'
+    handleKeyDown(enter())
+    buffer.value = 'status:verified'
+    handleKeyDown(enter())
+
+    expect((tokens.value[0] as FilterToken).error).toBeUndefined()
+    expect((tokens.value[1] as FilterToken).error).toBe(
+      'status takes one value; use status:pending|verified',
+    )
   })
 
   it('removes the last token on Backspace', () => {

@@ -70,16 +70,7 @@ export type Options<
 /**
  * Get all statements
  *
- * Get all statements with pagination.
- *
- * Args:
- * skip: Number of records to skip
- * limit: Maximum number of records to return
- * active_only: If True, return only active statements
- * service: Statement service instance
- *
- * Returns:
- * List of statements
+ * Get all statements with pagination. Anonymous and default-role users only get statements with status `verified`; moderators and admins get every status.
  */
 export const getStatementsApiV1StatementsGet = <ThrowOnError extends boolean = false>(
   options?: Options<GetStatementsApiV1StatementsGetData, ThrowOnError>,
@@ -92,21 +83,16 @@ export const getStatementsApiV1StatementsGet = <ThrowOnError extends boolean = f
     GetStatementsApiV1StatementsGetResponses,
     GetStatementsApiV1StatementsGetErrors,
     ThrowOnError
-  >({ url: '/api/v1/statements/', ...options })
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/statements/',
+    ...options,
+  })
 
 /**
  * Create a new statement
  *
- * Create a new political statement.
- * Requires authentication.
- *
- * Args:
- * statement: Statement data
- * service: Statement service instance
- * current_user: Authenticated user
- *
- * Returns:
- * Created statement
+ * Create a new political statement. Requires authentication. Unless the caller is a moderator or admin, `status` is forced to `pending`.
  */
 export const createStatementApiV1StatementsPost = <ThrowOnError extends boolean = false>(
   options: Options<CreateStatementApiV1StatementsPostData, ThrowOnError>,
@@ -166,17 +152,7 @@ export const deleteStatementApiV1StatementsStatementIdDelete = <
 /**
  * Get statement by ID
  *
- * Get a specific statement by ID.
- *
- * Args:
- * statement_id: Statement ID
- * service: Statement service instance
- *
- * Returns:
- * Statement data
- *
- * Raises:
- * HTTPException: 404 if statement not found
+ * Get a specific statement by ID, whatever its status, for any caller.
  */
 export const getStatementApiV1StatementsStatementIdGet = <ThrowOnError extends boolean = false>(
   options: Options<GetStatementApiV1StatementsStatementIdGetData, ThrowOnError>,
@@ -194,20 +170,7 @@ export const getStatementApiV1StatementsStatementIdGet = <ThrowOnError extends b
 /**
  * Update statement
  *
- * Update an existing statement.
- * Requires authentication.
- *
- * Args:
- * statement_id: Statement ID
- * statement_data: Updated statement data
- * service: Statement service instance
- * current_user: Authenticated user
- *
- * Returns:
- * Updated statement
- *
- * Raises:
- * HTTPException: 404 if statement not found
+ * Update an existing statement. Requires authentication. Setting `status` requires the moderator or admin role.
  */
 export const updateStatementApiV1StatementsStatementIdPut = <ThrowOnError extends boolean = false>(
   options: Options<UpdateStatementApiV1StatementsStatementIdPutData, ThrowOnError>,
@@ -233,16 +196,7 @@ export const updateStatementApiV1StatementsStatementIdPut = <ThrowOnError extend
 /**
  * Get statements by politician
  *
- * Get all statements by a specific politician.
- *
- * Args:
- * politician_name: Name of the politician
- * skip: Number of records to skip
- * limit: Maximum number of records to return
- * service: Statement service instance
- *
- * Returns:
- * List of statements
+ * Get statements whose politician name equals `politician_name` exactly. Anonymous and default-role users only get statements with status `verified`; moderators and admins get every status.
  */
 export const getStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGet = <
   ThrowOnError extends boolean = false,
@@ -260,21 +214,16 @@ export const getStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGet
     GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetResponses,
     GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetErrors,
     ThrowOnError
-  >({ url: '/api/v1/statements/politician/{politician_name}', ...options })
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/statements/politician/{politician_name}',
+    ...options,
+  })
 
 /**
  * Get statements by party
  *
- * Get all statements by a specific party.
- *
- * Args:
- * party: Name of the party
- * skip: Number of records to skip
- * limit: Maximum number of records to return
- * service: Statement service instance
- *
- * Returns:
- * List of statements
+ * Get statements whose party equals `party` exactly. Anonymous and default-role users only get statements with status `verified`; moderators and admins get every status.
  */
 export const getStatementsByPartyApiV1StatementsPartyPartyGet = <
   ThrowOnError extends boolean = false,
@@ -289,21 +238,16 @@ export const getStatementsByPartyApiV1StatementsPartyPartyGet = <
     GetStatementsByPartyApiV1StatementsPartyPartyGetResponses,
     GetStatementsByPartyApiV1StatementsPartyPartyGetErrors,
     ThrowOnError
-  >({ url: '/api/v1/statements/party/{party}', ...options })
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/statements/party/{party}',
+    ...options,
+  })
 
 /**
  * Get statements by status
  *
- * Get all statements by verification status.
- *
- * Args:
- * status: Statement status (pending, verified, disputed, retracted)
- * skip: Number of records to skip
- * limit: Maximum number of records to return
- * service: Statement service instance
- *
- * Returns:
- * List of statements
+ * Get statements with the given status. Anonymous and default-role users may only ask for `verified` (any other status answers 403); moderators and admins may ask for any status.
  */
 export const getStatementsByStatusApiV1StatementsStatusStatusGet = <
   ThrowOnError extends boolean = false,
@@ -318,34 +262,33 @@ export const getStatementsByStatusApiV1StatementsStatusStatusGet = <
     GetStatementsByStatusApiV1StatementsStatusStatusGetResponses,
     GetStatementsByStatusApiV1StatementsStatusStatusGetErrors,
     ThrowOnError
-  >({ url: '/api/v1/statements/status/{status}', ...options })
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/statements/status/{status}',
+    ...options,
+  })
 
 /**
  * Search statements
  *
- * Search statements by text in statement content, politician name, or party.
- *
- * Args:
- * q: Search query
- * skip: Number of records to skip
- * limit: Maximum number of records to return
- * service: Statement service instance
- *
- * Returns:
- * List of matching statements
+ * Search active statements by free text and filters. Every given parameter must match (AND); repeated values of one parameter are alternatives (OR); a `_not` parameter excludes its values (NOT IN). With no parameters, all visible statements are returned. Anonymous and default-role users only get statements with status `verified`; moderators and admins get every status. Only moderators and admins may use `status` and `status_not` (403 otherwise). Returns a plain list paged by `skip`/`limit`, without a total.
  */
 export const searchStatementsApiV1StatementsSearchGet = <ThrowOnError extends boolean = false>(
-  options: Options<SearchStatementsApiV1StatementsSearchGetData, ThrowOnError>,
+  options?: Options<SearchStatementsApiV1StatementsSearchGetData, ThrowOnError>,
 ): RequestResult<
   SearchStatementsApiV1StatementsSearchGetResponses,
   SearchStatementsApiV1StatementsSearchGetErrors,
   ThrowOnError
 > =>
-  (options.client ?? client).get<
+  (options?.client ?? client).get<
     SearchStatementsApiV1StatementsSearchGetResponses,
     SearchStatementsApiV1StatementsSearchGetErrors,
     ThrowOnError
-  >({ url: '/api/v1/statements/search/', ...options })
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/statements/search/',
+    ...options,
+  })
 
 /**
  * Request magic link for authentication

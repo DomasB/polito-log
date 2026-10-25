@@ -1,5 +1,5 @@
 from typing import Callable, Optional
-from fastapi import Depends, HTTPException, status, Header
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -62,32 +62,24 @@ def _user_from_token(token: str, db: Session) -> Optional[User]:
 
 
 async def get_current_user_optional(
-    authorization: Optional[str] = Header(None),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: Session = Depends(get_db)
 ) -> Optional[User]:
     """
-    Get current user from JWT token in Authorization header (optional).
+    Get current user from JWT Bearer token (optional).
     Returns None if no token or invalid token.
 
     Args:
-        authorization: Authorization header value
+        credentials: Bearer token credentials from Authorization header
         db: Database session
 
     Returns:
         User instance or None
     """
-    if not authorization:
+    if credentials is None:
         return None
 
-    # Extract token from "Bearer <token>"
-    try:
-        scheme, token = authorization.split()
-        if scheme.lower() != "bearer":
-            return None
-    except ValueError:
-        return None
-
-    return _user_from_token(token, db)
+    return _user_from_token(credentials.credentials, db)
 
 
 async def get_current_user(

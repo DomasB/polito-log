@@ -6,6 +6,13 @@ import { searchRegistry } from './registry'
 export const MAX_SUGGESTIONS = 10
 const SUGGESTION_DEBOUNCE_MS = 150
 
+/** Split off the value being typed after the last `|` (and its `!`). */
+function splitLastValue(value: string) {
+  const start = value.lastIndexOf('|') + 1
+  const prefix = value.slice(0, start) + (value[start] === '!' ? '!' : '')
+  return { prefix, partial: value.slice(prefix.length) }
+}
+
 /**
  * Committed tokens plus the current typing buffer:
  * [status:verified] [budget] | <cursor>
@@ -39,9 +46,9 @@ export function useSearch(registry = searchRegistry) {
 
     const match = parser.matchFilter(text)
     if (match) {
-      // Typing a value, e.g. "status:ver"; unknown keys get nothing
+      // Typing a value, e.g. "status:ver" or "status:pending|!ver"; unknown keys get nothing
       const filter = registry.getFilterByKey(match.key)
-      return filter ? filter.getSuggestions(match.value, context) : []
+      return filter ? filter.getSuggestions(splitLastValue(match.value).partial, context) : []
     }
 
     // Typing a key, e.g. "sta"
@@ -116,7 +123,10 @@ export function useSearch(registry = searchRegistry) {
       const match = parser.matchFilter(buffer.value)
       if (match) {
         // Go through the parser so validation and operatorId stay consistent
-        addTokens(parser.parse(`${match.key}${match.symbol}${suggestion.value}`))
+        const { prefix } = splitLastValue(match.value)
+        addTokens(
+          parser.parse(`${match.key}${match.symbol}${prefix}${suggestion.value}`, tokens.value),
+        )
       }
     }
     activeIndex.value = -1
@@ -129,7 +139,7 @@ export function useSearch(registry = searchRegistry) {
       return
     }
 
-    const parsed = parser.parse(buffer.value)
+    const parsed = parser.parse(buffer.value, tokens.value)
     if (parsed.length > 0) addTokens(parsed)
   }
 

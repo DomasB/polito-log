@@ -56,6 +56,16 @@ export class SearchRegistry {
     }
   }
 
+  unregister(id: string) {
+    const plugin = this.plugins.get(id)
+    if (!plugin) return
+    this.plugins.delete(id)
+    this.filterPattern = null
+    for (const index of [this.filterKeys, this.operatorSymbols, this.actionTriggers]) {
+      for (const [k, pluginId] of index) if (pluginId === id) index.delete(k)
+    }
+  }
+
   /**
    * Matches `key<operator>value`, where the operator is one of the registered
    * symbols (longest first, so `!=` wins over `=`). Rebuilt after registration.

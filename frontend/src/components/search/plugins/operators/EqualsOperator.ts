@@ -6,10 +6,3 @@ export const EqualsOperator: OperatorPlugin = {
   symbols: [':', '='],
   label: 'Equals',
 }
-
-export const NotEqualsOperator: OperatorPlugin = {
-  id: 'not-equals',
-  type: 'operator',
-  symbols: ['!='],
-  label: 'Not equals',
-}
