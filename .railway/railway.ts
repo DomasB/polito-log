@@ -1,7 +1,7 @@
-import { defineRailway, github, postgres, preserve, project, service, volume } from "railway/iac";
+import { database, defineRailway, github, preserve, project, service, volume } from "railway/iac";
 
 export default defineRailway(() => {
-  const Postgres = postgres("Postgres", { region: "europe-west4-drams3a" });
+  const Postgres = database("Postgres", "postgres", { image: "ghcr.io/railwayapp-templates/postgres-ssl:17", region: "europe-west4-drams3a" });
   Postgres.networking = { privateNetworkEndpoint: "postgres" };
   const postgresVolume = volume("postgres-volume", { alerts: { usage: { "100": {}, "80": {}, "95": {} } }, allowOnlineResize: true, region: "europe-west4-drams3a", sizeMB: 5000 });
   const backend = service("backend", {

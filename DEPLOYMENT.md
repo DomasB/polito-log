@@ -178,7 +178,7 @@ railway config apply            # apply it
 
 Always read the plan first. A resource missing from the file is deleted on apply, and variables are managed, so a variable missing from `env` is deleted too. Do not use `--include-variables` when pulling. After a dashboard change, run `railway config pull --force --variables=managed` and review the diff, or the next apply reverts it.
 
-`.github/workflows/railway-config.yml` runs `plan` on pull requests that touch `.railway/**` and `apply` when such a PR merges. It needs a production project token as the `RAILWAY_TOKEN` repository secret.
+Apply is manual: there is deliberately no Railway token in GitHub secrets, so CI does not plan or apply. Run `plan` and `apply` locally after merging a change to `.railway/`. Postgres is pinned to the running image (`postgres-ssl:17`); do not bump it through this file without a migration plan.
 
 The old `railway.json` files were never read by these services and are removed (Config as Code is deprecated).
 
@@ -419,7 +419,6 @@ The following files are used for CI and Railway deployment:
 - `.github/workflows/backend-ci.yml` - Backend tests (gate for Railway's Wait for CI)
 - `.github/workflows/frontend-ci.yml` - Frontend type-check, build and tests (gate for Railway's Wait for CI)
 - `.railway/railway.ts` - Railway Infrastructure as Code (see above)
-- `.github/workflows/railway-config.yml` - Plans and applies `.railway/railway.ts`
 - `frontend/Dockerfile` - Frontend containerization (local Docker only; production uses Railpack)
 - `frontend/nginx.conf` - Nginx configuration for serving static files
 - `frontend/docker-entrypoint.sh` - Script to configure nginx with Railway PORT
