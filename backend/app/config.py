@@ -1,5 +1,8 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from typing import Optional
+
+DEFAULT_JWT_SECRET_KEY = "your-secret-key-change-in-production"
 
 
 class Settings(BaseSettings):
@@ -15,7 +18,7 @@ class Settings(BaseSettings):
     DESCRIPTION: str = "Open source project for tracking political accountability"
 
     # JWT Settings
-    JWT_SECRET_KEY: str = "your-secret-key-change-in-production"  # Change in production!
+    JWT_SECRET_KEY: str = DEFAULT_JWT_SECRET_KEY  # Must be overridden in production
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
@@ -31,6 +34,22 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+
+    @model_validator(mode="after")
+    def require_production_secrets(self) -> "Settings":
+        """Refuse to start in production with insecure or missing secrets."""
+        if self.ENVIRONMENT != "production":
+            return self
+        missing = []
+        if self.JWT_SECRET_KEY == DEFAULT_JWT_SECRET_KEY:
+            missing.append("JWT_SECRET_KEY")
+        if not self.BREVO_API_KEY:
+            missing.append("BREVO_API_KEY")
+        if missing:
+            raise ValueError(
+                f"Production requires these secrets to be set: {', '.join(missing)}"
+            )
+        return self
 
 
 settings = Settings()
