@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 import logging
-import sib_api_v3_sdk
-from sib_api_v3_sdk.rest import ApiException
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +76,8 @@ class BrevoEmailSender(EmailSender):
             sender_email: Sender email address
             sender_name: Sender name for the email
         """
+        import sib_api_v3_sdk
+
         self.sender_email = sender_email
         self.sender_name = sender_name
 
@@ -105,6 +105,9 @@ class BrevoEmailSender(EmailSender):
         Returns:
             bool: True if email was sent successfully, False otherwise
         """
+        import sib_api_v3_sdk
+        from sib_api_v3_sdk.rest import ApiException
+
         try:
             # Prepare email content
             greeting = f"Hello {username}," if username else "Hello,"
