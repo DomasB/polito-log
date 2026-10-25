@@ -16,7 +16,6 @@ class User(Base):
     email: str = Column(String(255), unique=True, nullable=False, index=True)
     username: str = Column(String(100), unique=True, nullable=False, index=True)
     is_active: bool = Column(Boolean, default=True, nullable=False)
-    is_superuser: bool = Column(Boolean, default=False, nullable=False)
     # Stored by value ('admin', not 'ADMIN') and guarded by a CHECK constraint.
     role: UserRole = Column(
         SQLAlchemyEnum(

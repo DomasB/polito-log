@@ -51,8 +51,8 @@ def test_rows_written_without_role_load_as_default(db):
     name = _username()
     user_id = session.execute(
         text(
-            "INSERT INTO users (email, username, is_active, is_superuser)"
-            " VALUES (:email, :username, true, false) RETURNING id"
+            "INSERT INTO users (email, username, is_active)"
+            " VALUES (:email, :username, true) RETURNING id"
         ),
         {"email": f"{name}@example.com", "username": name},
     ).scalar_one()
@@ -68,8 +68,8 @@ def test_unknown_role_is_rejected_by_the_database(db):
     with pytest.raises(IntegrityError):
         session.execute(
             text(
-                "INSERT INTO users (email, username, is_active, is_superuser, role)"
-                " VALUES (:email, :username, true, false, 'DEFAULT')"
+                "INSERT INTO users (email, username, is_active, role)"
+                " VALUES (:email, :username, true, 'DEFAULT')"
             ),
             {"email": f"{name}@example.com", "username": name},
         )
