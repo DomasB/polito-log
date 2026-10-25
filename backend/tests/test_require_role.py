@@ -40,7 +40,8 @@ def make_user(db_session):
 
 
 def auth(user: User) -> dict:
-    return {"Authorization": f"Bearer {create_access_token({'sub': str(user.id)})}"}
+    token = create_access_token({"sub": str(user.id), "ver": user.token_version})
+    return {"Authorization": f"Bearer {token}"}
 
 
 def test_role_order():

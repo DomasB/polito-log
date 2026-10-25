@@ -288,7 +288,7 @@ export type UserResponse = {
 /**
  * UserRole
  *
- * User role enumeration.
+ * User role enumeration. Use `rank`/`at_least` to compare privilege.
  */
 export type UserRole = 'admin' | 'moderator' | 'default';
 
@@ -791,6 +791,22 @@ export type UpdateCurrentUserProfileApiV1AuthMePutResponses = {
 };
 
 export type UpdateCurrentUserProfileApiV1AuthMePutResponse = UpdateCurrentUserProfileApiV1AuthMePutResponses[keyof UpdateCurrentUserProfileApiV1AuthMePutResponses];
+
+export type LogoutEverywhereApiV1AuthLogoutAllPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/logout-all';
+};
+
+export type LogoutEverywhereApiV1AuthLogoutAllPostResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type LogoutEverywhereApiV1AuthLogoutAllPostResponse = LogoutEverywhereApiV1AuthLogoutAllPostResponses[keyof LogoutEverywhereApiV1AuthLogoutAllPostResponses];
 
 export type HealthCheckGetData = {
     body?: never;

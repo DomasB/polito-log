@@ -120,15 +120,39 @@ class AuthService:
         # Mark magic link as used
         self.magic_link_repository.mark_as_used(magic_link)
 
-        # Create JWT token
-        token_data = {
+        return user, self.create_session_token(user)
+
+    @staticmethod
+    def create_session_token(user: User) -> str:
+        """
+        Create a session JWT for a user. It stays valid until it expires or
+        the user's token_version changes.
+
+        Args:
+            user: User to authenticate
+
+        Returns:
+            Encoded JWT
+        """
+        return create_access_token({
             "sub": str(user.id),
+            "ver": user.token_version,
             "email": user.email,
             "username": user.username
-        }
-        access_token = create_access_token(token_data)
+        })
 
-        return user, access_token
+    def revoke_sessions(self, user: User) -> User:
+        """
+        Invalidate every session token issued to a user ("log out everywhere").
+
+        Args:
+            user: User whose sessions to revoke
+
+        Returns:
+            Updated User instance
+        """
+        user.token_version += 1
+        return self.user_repository.update(user)
 
     def get_current_user(self, user_id: int) -> Optional[User]:
         """

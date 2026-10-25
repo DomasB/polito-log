@@ -30,6 +30,8 @@ class User(Base):
         server_default=UserRole.DEFAULT.value,
         nullable=False
     )
+    # Embedded in session JWTs as `ver`; incrementing it revokes all of them.
+    token_version: int = Column(Integer, default=0, server_default="0", nullable=False)
     created_at: datetime = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: datetime = Column(
         DateTime(timezone=True),

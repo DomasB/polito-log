@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ApiHealthCheckApiV1GetData, ApiHealthCheckApiV1GetResponses, CreateStatementApiV1StatementsPostData, CreateStatementApiV1StatementsPostErrors, CreateStatementApiV1StatementsPostResponses, DeleteStatementApiV1StatementsStatementIdDeleteData, DeleteStatementApiV1StatementsStatementIdDeleteErrors, DeleteStatementApiV1StatementsStatementIdDeleteResponses, GetCurrentUserProfileApiV1AuthMeGetData, GetCurrentUserProfileApiV1AuthMeGetResponses, GetStatementApiV1StatementsStatementIdGetData, GetStatementApiV1StatementsStatementIdGetErrors, GetStatementApiV1StatementsStatementIdGetResponses, GetStatementsApiV1StatementsGetData, GetStatementsApiV1StatementsGetErrors, GetStatementsApiV1StatementsGetResponses, GetStatementsByPartyApiV1StatementsPartyPartyGetData, GetStatementsByPartyApiV1StatementsPartyPartyGetErrors, GetStatementsByPartyApiV1StatementsPartyPartyGetResponses, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetData, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetErrors, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetResponses, GetStatementsByStatusApiV1StatementsStatusStatusGetData, GetStatementsByStatusApiV1StatementsStatusStatusGetErrors, GetStatementsByStatusApiV1StatementsStatusStatusGetResponses, HealthCheckGetData, HealthCheckGetResponses, RequestMagicLinkApiV1AuthMagicLinkPostData, RequestMagicLinkApiV1AuthMagicLinkPostErrors, RequestMagicLinkApiV1AuthMagicLinkPostResponses, SearchStatementsApiV1StatementsSearchGetData, SearchStatementsApiV1StatementsSearchGetErrors, SearchStatementsApiV1StatementsSearchGetResponses, UpdateCurrentUserProfileApiV1AuthMePutData, UpdateCurrentUserProfileApiV1AuthMePutErrors, UpdateCurrentUserProfileApiV1AuthMePutResponses, UpdateStatementApiV1StatementsStatementIdPutData, UpdateStatementApiV1StatementsStatementIdPutErrors, UpdateStatementApiV1StatementsStatementIdPutResponses, VerifyMagicLinkApiV1AuthVerifyPostData, VerifyMagicLinkApiV1AuthVerifyPostErrors, VerifyMagicLinkApiV1AuthVerifyPostResponses } from './types.gen';
+import type { ApiHealthCheckApiV1GetData, ApiHealthCheckApiV1GetResponses, CreateStatementApiV1StatementsPostData, CreateStatementApiV1StatementsPostErrors, CreateStatementApiV1StatementsPostResponses, DeleteStatementApiV1StatementsStatementIdDeleteData, DeleteStatementApiV1StatementsStatementIdDeleteErrors, DeleteStatementApiV1StatementsStatementIdDeleteResponses, GetCurrentUserProfileApiV1AuthMeGetData, GetCurrentUserProfileApiV1AuthMeGetResponses, GetStatementApiV1StatementsStatementIdGetData, GetStatementApiV1StatementsStatementIdGetErrors, GetStatementApiV1StatementsStatementIdGetResponses, GetStatementsApiV1StatementsGetData, GetStatementsApiV1StatementsGetErrors, GetStatementsApiV1StatementsGetResponses, GetStatementsByPartyApiV1StatementsPartyPartyGetData, GetStatementsByPartyApiV1StatementsPartyPartyGetErrors, GetStatementsByPartyApiV1StatementsPartyPartyGetResponses, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetData, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetErrors, GetStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGetResponses, GetStatementsByStatusApiV1StatementsStatusStatusGetData, GetStatementsByStatusApiV1StatementsStatusStatusGetErrors, GetStatementsByStatusApiV1StatementsStatusStatusGetResponses, HealthCheckGetData, HealthCheckGetResponses, LogoutEverywhereApiV1AuthLogoutAllPostData, LogoutEverywhereApiV1AuthLogoutAllPostResponses, RequestMagicLinkApiV1AuthMagicLinkPostData, RequestMagicLinkApiV1AuthMagicLinkPostErrors, RequestMagicLinkApiV1AuthMagicLinkPostResponses, SearchStatementsApiV1StatementsSearchGetData, SearchStatementsApiV1StatementsSearchGetErrors, SearchStatementsApiV1StatementsSearchGetResponses, UpdateCurrentUserProfileApiV1AuthMePutData, UpdateCurrentUserProfileApiV1AuthMePutErrors, UpdateCurrentUserProfileApiV1AuthMePutResponses, UpdateStatementApiV1StatementsStatementIdPutData, UpdateStatementApiV1StatementsStatementIdPutErrors, UpdateStatementApiV1StatementsStatementIdPutResponses, VerifyMagicLinkApiV1AuthVerifyPostData, VerifyMagicLinkApiV1AuthVerifyPostErrors, VerifyMagicLinkApiV1AuthVerifyPostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -348,6 +348,29 @@ export const updateCurrentUserProfileApiV1AuthMePut = <ThrowOnError extends bool
             'Content-Type': 'application/json',
             ...options.headers
         }
+    });
+};
+
+/**
+ * Log out everywhere
+ *
+ * Revoke every session token of the current user, including the one used
+ * for this request. The user has to log in again with a new magic link.
+ *
+ * Args:
+ * current_user: Current authenticated user from JWT
+ * service: Auth service instance
+ */
+export const logoutEverywhereApiV1AuthLogoutAllPost = <ThrowOnError extends boolean = false>(options?: Options<LogoutEverywhereApiV1AuthLogoutAllPostData, ThrowOnError>) => {
+    return (options?.client ?? client).post<LogoutEverywhereApiV1AuthLogoutAllPostResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
+        url: '/api/v1/auth/logout-all',
+        ...options
     });
 };
 

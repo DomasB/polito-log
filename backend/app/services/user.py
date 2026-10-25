@@ -53,6 +53,8 @@ class UserService:
             changed_by=changed_by,
         )
         user.role = role
-        # One commit for both the role and its audit row
+        # Sessions issued under the old role end now
+        user.token_version += 1
+        # One commit for the role, the token version and the audit row
         self.role_change_repository.create(change)
         return user

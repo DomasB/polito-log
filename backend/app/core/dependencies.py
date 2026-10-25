@@ -29,6 +29,38 @@ async def get_email_sender() -> EmailSender:
     return get_email_sender_factory()
 
 
+def _user_from_token(token: str, db: Session) -> Optional[User]:
+    """
+    Resolve a session JWT to its active user.
+
+    The token must carry the user's current token_version in its `ver` claim:
+    bumping users.token_version (role change, "log out everywhere") revokes
+    every token issued before.
+
+    Args:
+        token: Encoded JWT
+        db: Database session
+
+    Returns:
+        User instance, or None if the token is invalid, expired or revoked
+    """
+    payload = decode_access_token(token)
+    if not payload:
+        return None
+
+    try:
+        user_id = int(payload["sub"])
+        token_version = int(payload["ver"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    user = UserRepository(db).get_by_id(user_id)
+    if not user or not user.is_active or user.token_version != token_version:
+        return None
+
+    return user
+
+
 async def get_current_user_optional(
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db)
@@ -55,29 +87,7 @@ async def get_current_user_optional(
     except ValueError:
         return None
 
-    # Decode token
-    payload = decode_access_token(token)
-    if not payload:
-        return None
-
-    # Get user ID from token
-    user_id_str = payload.get("sub")
-    if not user_id_str:
-        return None
-
-    try:
-        user_id = int(user_id_str)
-    except ValueError:
-        return None
-
-    # Get user from database
-    user_repo = UserRepository(db)
-    user = user_repo.get_by_id(user_id)
-
-    if not user or not user.is_active:
-        return None
-
-    return user
+    return _user_from_token(token, db)
 
 
 async def get_current_user(
@@ -97,7 +107,8 @@ async def get_current_user(
         User instance
 
     Raises:
-        HTTPException: If not authenticated or token is invalid
+        HTTPException: If not authenticated, or the token is invalid, expired
+            or revoked, or the user is inactive
     """
     if credentials is None:
         raise HTTPException(
@@ -106,41 +117,11 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Decode token
-    payload = decode_access_token(credentials.credentials)
-    if not payload:
+    user = _user_from_token(credentials.credentials, db)
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # Get user ID from token
-    user_id_str = payload.get("sub")
-    if not user_id_str:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    try:
-        user_id = int(user_id_str)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # Get user from database
-    user_repo = UserRepository(db)
-    user = user_repo.get_by_id(user_id)
-
-    if not user or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

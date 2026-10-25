@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -173,3 +173,24 @@ def update_current_user_profile(
         )
 
     return updated_user
+
+
+@router.post(
+    "/logout-all",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Log out everywhere"
+)
+def logout_everywhere(
+    current_user: User = Depends(get_current_user),
+    service: AuthService = Depends(get_auth_service)
+) -> Response:
+    """
+    Revoke every session token of the current user, including the one used
+    for this request. The user has to log in again with a new magic link.
+
+    Args:
+        current_user: Current authenticated user from JWT
+        service: Auth service instance
+    """
+    service.revoke_sessions(current_user)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -117,6 +117,7 @@ The JWT token contains:
 ```json
 {
   "sub": "1",              // User ID
+  "ver": 0,                // users.token_version; see "Revoking sessions"
   "email": "user@example.com",
   "username": "user",
   "exp": 1730000000,       // Expiration timestamp
@@ -373,6 +374,15 @@ token and 403 when the role is too low:
 ```python
 @router.delete("/{id}", dependencies=[Depends(require_role(UserRole.MODERATOR))])
 ```
+
+## Revoking sessions
+
+Session JWTs carry the user's `token_version` in a `ver` claim, and
+`get_current_user` rejects a token whose `ver` differs from the database.
+Incrementing `users.token_version` therefore logs the user out everywhere.
+That happens on every role change, and when the user calls
+`POST /auth/logout-all`. Tokens without a `ver` claim (issued before this
+existed) are rejected.
 
 ## Future Enhancements
 
