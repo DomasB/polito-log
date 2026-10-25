@@ -57,7 +57,11 @@ DATABASE_URL=${{Postgres.DATABASE_URL}}
 ENVIRONMENT=production
 DEBUG=False
 PORT=8000
+JWT_SECRET_KEY=<long random string, e.g. `openssl rand -hex 32`>
+BREVO_API_KEY=<Brevo API key, see backend/BREVO_SETUP.md>
 ```
+
+With `ENVIRONMENT=production` the backend **refuses to start** if `JWT_SECRET_KEY` is unset (or left at the code default) or `BREVO_API_KEY` is missing. The deploy then fails its health check, and Railway keeps the previous version running.
 
 **To link database:**
 - In Railway dashboard, the `${{Postgres.DATABASE_URL}}` variable reference will automatically connect to your PostgreSQL service
@@ -102,50 +106,19 @@ Replace `<your-backend-service>` with your actual backend Railway URL.
 - Railway automatically passes environment variables as Docker build arguments
 - The Dockerfile uses `ARG` and `ENV` to make `VITE_API_URL` available during the build
 
-### 5. Configure GitHub Actions Secrets
+### 5. Configure Watch Paths and Wait for CI
 
-Go to your GitHub repository settings → Secrets and variables → Actions → New repository secret
+Railway deploys each service straight from GitHub. GitHub Actions only runs tests (see [How Deploys Work](#how-deploys-work)). Configure both app services in the Railway dashboard:
 
-Add the following secrets:
+1. **Watch paths** (service → Settings → Source / Build → Watch Paths), so a service only redeploys when its own code changes:
+   - backend: `/backend/**`
+   - frontend: `/frontend/**`
+2. **Wait for CI** (service → Settings → Source, toggle "Wait for CI"). Railway then holds each new deployment in `WAITING` until the GitHub Actions runs for that commit finish, and skips it if any run fails.
+3. Make sure the deploy branch (Settings → Source → Branch) is `main`.
 
-#### Required Secrets:
+No Railway token is stored in GitHub. See [Security Considerations](#security-considerations).
 
-1. **RAILWAY_TOKEN**
-   - Get this from Railway dashboard: Settings → Tokens → Create Token
-   - Copy the token and add it as a GitHub secret
-   - This token allows GitHub Actions to deploy to Railway
-
-2. **VITE_API_URL** (recommended for GitHub Actions)
-   - The URL of your backend service
-   - Example: `https://polito-log-backend.up.railway.app`
-   - Used during `npm run build` in GitHub Actions
-   - Also set this in Railway dashboard for Railway-triggered deployments
-
-### 6. Set Up Railway Services for CI/CD
-
-For GitHub Actions to work correctly:
-
-1. **Connect GitHub Repository to Railway:**
-   - In Railway dashboard, go to Project Settings
-   - Click on "Deployments" tab
-   - Ensure your GitHub repository is connected
-   - This allows Railway CLI to auto-detect the project from GitHub Actions
-
-2. **Verify Service Names:**
-   - Go to each service (backend/frontend)
-   - Click on Settings → General
-   - Ensure services are named exactly:
-     - `backend` for backend service
-     - `frontend` for frontend service
-   - The GitHub Actions workflows reference these service names
-
-3. **Important - Monorepo Configuration:**
-   - Backend service should have Root Directory set to `/backend`
-   - Frontend service should have Root Directory set to `/frontend`
-   - This tells Railway which subdirectory to build from
-   - Dockerfiles use relative paths from their respective directories
-
-### 7. Configure Service Domains
+### 6. Configure Service Domains
 
 1. **Backend Service:**
    - Go to backend service → Settings → Networking
@@ -161,42 +134,45 @@ For GitHub Actions to work correctly:
    - Update the `VITE_API_URL` in frontend service with the backend URL
    - Trigger a redeployment
 
-## Deployment Workflows
+## How Deploys Work
 
-The project includes two GitHub Actions workflows:
+```
+push / merge to main
+        │
+        ├─► GitHub Actions CI (tests only)
+        │     backend-ci.yml   if backend/** changed:  pytest against Postgres 17
+        │     frontend-ci.yml  if frontend/** changed: type-check + build + vitest
+        │
+        └─► Railway GitHub autodeploy (per service, filtered by watch paths)
+              deployment status: WAITING  (Wait for CI)
+                    │
+                    ├─ all CI runs green  → build + deploy → SUCCESS
+                    └─ any CI run failed  → SKIPPED, production stays on the previous version
+```
 
-### Automatic Deployments
+- **GitHub Actions never deploys.** The workflows in `.github/workflows/` (`backend-ci.yml`, `frontend-ci.yml`) only run tests, on pushes to `main` and on pull requests.
+- **Railway deploys.** Each service watches the repo through Railway's GitHub integration. Wait for CI waits for every GitHub Actions run on the commit. A workflow skipped by its path filter doesn't count, so a docs-only commit deploys nothing and blocks nothing.
+- **Pull requests** run the same CI workflows, so a red check on the PR means the merge will not deploy.
 
-**Backend Deployment** (`.github/workflows/deploy-backend.yml`):
-- Triggers on push to `main` or `production` branches when backend files change
-- Can also be triggered manually via workflow_dispatch
+### Redeploy or Roll Back
 
-**Frontend Deployment** (`.github/workflows/deploy-frontend.yml`):
-- Triggers on push to `main` or `production` branches when frontend files change
-- Can also be triggered manually via workflow_dispatch
+All of this happens in the Railway dashboard. No GitHub workflow is involved.
 
-### Manual Deployments
-
-You can manually trigger deployments from GitHub:
-
-1. Go to Actions tab in your GitHub repository
-2. Select the workflow (Deploy Backend/Frontend to Railway)
-3. Click "Run workflow"
-4. Choose the environment (production/staging)
-5. Click "Run workflow"
+- **Redeploy the current commit:** service → Deployments → latest deployment → ⋮ → Redeploy.
+- **Roll back:** service → Deployments → pick an earlier successful deployment → ⋮ → Rollback. This restores that deployment's image and variables.
+- **A commit was SKIPPED because of a flaky CI run:** re-run the job in GitHub Actions to confirm it's green. Then deploy it with Redeploy on the skipped deployment, or push a new commit.
 
 ## Database Migrations
 
-When you implement database migrations (Alembic), uncomment the migration step in `.github/workflows/deploy-backend.yml`:
+When database migrations (Alembic) are added, run them as a Railway pre-deploy command in `backend/railway.json`, so Railway runs them (in a separate container with the service's variables) before the new version goes live:
 
-```yaml
-- name: Run Database Migrations
-  env:
-    RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-  run: |
-    cd backend
-    railway run --service backend alembic upgrade head
+```json
+"deploy": {
+  "preDeployCommand": ["alembic upgrade head"]
+}
 ```
+
+Until then, the backend creates missing tables on startup (`Base.metadata.create_all` in `app/main.py`).
 
 ## Environment-Specific Configuration
 
@@ -204,12 +180,9 @@ When you implement database migrations (Alembic), uncomment the migration step i
 
 To set up separate staging and production environments:
 
-1. Create two Railway projects: `polito-log-production` and `polito-log-staging`
-2. Repeat the setup steps for each environment
-3. Create environment-specific GitHub secrets:
-   - `RAILWAY_TOKEN_PRODUCTION`
-   - `RAILWAY_TOKEN_STAGING`
-4. Modify workflows to use the appropriate token based on branch/environment
+1. Add a `staging` environment to the Railway project (or create a separate project)
+2. Point each staging service at the branch it should deploy from (Settings → Source → Branch)
+3. Set the environment's variables, with its own secrets
 
 ### Branch Strategy
 
@@ -217,7 +190,7 @@ Recommended branch strategy:
 - `main` branch → staging environment
 - `production` branch → production environment
 
-Update workflow triggers accordingly.
+If you deploy from a branch other than `main`, add it to the `push` branches of the CI workflows. Otherwise Wait for CI has no runs to wait for.
 
 ## Monitoring and Logs
 
@@ -256,10 +229,9 @@ Access these from each service's "Metrics" tab.
    - Solution: Set Root Directory to `/backend` for backend, `/frontend` for frontend
    - Verify railway.json has `dockerfilePath: "Dockerfile"` (relative to root directory)
 
-3. **"Could not find root directory: /backend" Error (GitHub Actions)**
-   - Cause: GitHub Actions workflow running from subdirectory
-   - Solution: Already fixed in workflows - `railway up` runs from project root
-   - Verify you're using the updated workflow files
+3. **Deployment Stuck in WAITING or Marked SKIPPED**
+   - WAITING: Railway is waiting for GitHub Actions runs on that commit. Check the Actions tab.
+   - SKIPPED: a CI run failed. Fix it and push again. If the failure was flaky, see [Redeploy or Roll Back](#redeploy-or-roll-back).
 
 4. **Monorepo Detection Issues**
    - Cause: Railway not recognizing monorepo structure
@@ -294,11 +266,9 @@ Access these from each service's "Metrics" tab.
    - Check CORS configuration in backend
    - Ensure backend domain is accessible
 
-10. **GitHub Actions Failing**
-   - Verify `RAILWAY_TOKEN` secret is set correctly
-   - Check token has not expired
-   - Verify service names match in Railway dashboard
-   - Ensure GitHub repository is connected in Railway project settings
+10. **Backend Crashes on Start in Production**
+   - Check the deploy logs for `Production requires these secrets to be set: ...`
+   - Set the named variables (`JWT_SECRET_KEY`, `BREVO_API_KEY`) on the backend service
 
 ### Health Checks
 
@@ -334,11 +304,12 @@ Railway dynamically assigns ports to services. Your application MUST:
 
 ## Security Considerations
 
-1. **Environment Variables**: Never commit secrets to git
+1. **Environment Variables**: Never commit secrets to git. Production secrets (`JWT_SECRET_KEY`, `BREVO_API_KEY`) live only in Railway variables.
 2. **Database**: PostgreSQL is private by default, only accessible within Railway network
 3. **HTTPS**: Railway automatically provides SSL certificates
 4. **CORS**: Configure allowed origins in backend
 5. **Secrets Rotation**: Regularly rotate API tokens and secrets
+6. **No Railway Token in GitHub**: Deploys come from Railway's GitHub integration, so GitHub never needs a `RAILWAY_TOKEN`. An earlier setup also deployed with `railway up` from GitHub Actions, using a token stored as a repo secret. That gave every workflow (and anyone who could change one) a credential to the whole Railway project, and it was dropped after the October 2026 incident. Don't add a Railway token to GitHub again.
 
 ## Cost Optimization
 
@@ -376,7 +347,7 @@ railway run --service postgres pg_dump > backup.sql
 
 After completing this setup:
 
-1. Test the deployment by pushing a commit to trigger CI/CD
+1. Test the deployment by merging a change to `main`, then watch CI go green and Railway go WAITING → SUCCESS
 2. Verify both services are running correctly
 3. Check application functionality end-to-end
 4. Set up monitoring and alerts
@@ -401,11 +372,12 @@ Use this checklist to ensure everything is configured:
 - [ ] Backend Root Directory set to `/backend`
 - [ ] Frontend service created and configured
 - [ ] Frontend Root Directory set to `/frontend`
-- [ ] Backend environment variables set (DATABASE_URL, ENVIRONMENT, DEBUG, PORT)
+- [ ] Backend environment variables set (DATABASE_URL, ENVIRONMENT, DEBUG, PORT, JWT_SECRET_KEY, BREVO_API_KEY)
 - [ ] Frontend environment variable set (VITE_API_URL)
 - [ ] Database linked to backend service
-- [ ] Railway token generated
-- [ ] GitHub secret RAILWAY_TOKEN added
+- [ ] Watch paths set (`/backend/**`, `/frontend/**`)
+- [ ] Wait for CI enabled on backend and frontend
+- [ ] No `RAILWAY_TOKEN` secret in the GitHub repo
 - [ ] Backend domain generated
 - [ ] Frontend domain generated
 - [ ] Frontend VITE_API_URL updated with backend URL
@@ -432,10 +404,10 @@ This file is gitignored. The `.env.example` file serves as a template.
 
 ## Additional Configuration Files
 
-The following files have been created for Railway deployment:
+The following files are used for CI and Railway deployment:
 
-- `.github/workflows/deploy-backend.yml` - Backend CI/CD workflow
-- `.github/workflows/deploy-frontend.yml` - Frontend CI/CD workflow
+- `.github/workflows/backend-ci.yml` - Backend tests (gate for Railway's Wait for CI)
+- `.github/workflows/frontend-ci.yml` - Frontend type-check, build and tests (gate for Railway's Wait for CI)
 - `backend/railway.json` - Backend Railway configuration
 - `frontend/railway.json` - Frontend Railway configuration
 - `frontend/Dockerfile` - Frontend containerization
