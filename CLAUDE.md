@@ -3,7 +3,7 @@
 Open-source tracker of political accountability: politicians' statements, a query engine over them, and an open data API. Principles: open data, verifiability (every statement traceable to its source), minimal UI.
 
 ## Layout
-- `backend/`: FastAPI + SQLAlchemy + PostgreSQL, Python 3.11+. Magic-link passwordless auth.
+- `backend/`: FastAPI + SQLAlchemy + PostgreSQL, Python 3.13+. Magic-link passwordless auth.
 - `frontend/`: Vue 3 + Pinia + Naive UI + TypeScript (Vite).
 - Deploy: Railway deploys from GitHub after GitHub Actions CI (tests only) passes. See `DEPLOYMENT.md`.
 

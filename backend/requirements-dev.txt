@@ -2,13 +2,11 @@
 # Install with: pip install -r requirements.txt -r requirements-dev.txt
 
 # Debugging
-debugpy==1.8.0
+debugpy==1.8.22
 
 # Testing
 pytest==9.1.1
-httpx==0.28.1
+httpx2==2.16.0
 
-# Code quality (future)
-# black==23.11.0
-# flake8==6.1.0
-# mypy==1.7.1
+# Code quality: ruff check / ruff format
+ruff==0.17.2

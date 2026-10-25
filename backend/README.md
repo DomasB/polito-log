@@ -207,7 +207,7 @@ dev.cmd build backend
 ### Option 2: Local Installation
 
 #### Prerequisites
-- Python 3.11+
+- Python 3.13+
 - PostgreSQL 14+
 
 #### Installation
@@ -348,7 +348,7 @@ The codebase follows:
 - **Multi-stage build** for optimized image size
 - **Non-root user** for security
 - **Health checks** for container monitoring
-- **Minimal base image** (python:3.11-slim)
+- **Minimal base image** (python:3.13-slim)
 
 ### docker-compose.yml Services
 
