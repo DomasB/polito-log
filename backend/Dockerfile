@@ -1,5 +1,5 @@
 # Multi-stage build for optimized production image
-FROM python:3.11-slim as builder
+FROM python:3.13-slim as builder
 
 # Build argument for environment (development or production)
 ARG ENVIRONMENT=production
@@ -35,7 +35,7 @@ RUN pip install --upgrade pip && \
 
 
 # Final stage
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Build argument for environment (needs to be redeclared in new stage)
 ARG ENVIRONMENT=production
