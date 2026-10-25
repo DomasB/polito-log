@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import {
-  NSpace,
-  NButton,
-  NSpin,
-  NAlert,
-  NEmpty,
-  NH2
-} from 'naive-ui'
+import { NSpace, NButton, NSpin, NAlert, NEmpty, NH2 } from 'naive-ui'
 import { useStatements } from '@/composables/useStatements'
 import { useAuthStore } from '@/stores/auth'
 import type { StatementCreate } from '@/api/types.gen'
@@ -22,7 +15,7 @@ const {
   fetchStatements,
   createStatement,
   searchStatements,
-  clearError
+  clearError,
 } = useStatements()
 
 const authStore = useAuthStore()
@@ -33,11 +26,11 @@ const busy = computed(() => loading.value || searchPending.value)
 
 // Status filters are applied in the browser, over the (at most 100) fetched rows
 const visibleStatements = computed(() => {
-  const statusFilters = activeQuery.value.filters.filter(f => f.pluginId === 'status')
-  return statements.value.filter(s =>
-    statusFilters.every(f =>
-      f.operatorId === 'not-equals' ? s.status !== f.value : s.status === f.value
-    )
+  const statusFilters = activeQuery.value.filters.filter((f) => f.pluginId === 'status')
+  return statements.value.filter((s) =>
+    statusFilters.every((f) =>
+      f.operatorId === 'not-equals' ? s.status !== f.value : s.status === f.value,
+    ),
   )
 })
 
@@ -61,7 +54,7 @@ async function handleCreateStatement() {
     statement_date: new Date().toISOString(),
     source_url: 'https://example.com/source',
     category: 'Policy',
-    status: 'pending'
+    status: 'pending',
   }
 
   await createStatement(newStatement)
@@ -83,7 +76,6 @@ async function reload() {
     await fetchStatements()
   }
 }
-
 </script>
 
 <template>
@@ -92,29 +84,16 @@ async function reload() {
     <NH2>Political Statements</NH2>
 
     <!-- Error Alert -->
-    <NAlert
-      v-if="error"
-      type="error"
-      closable
-      @close="clearError"
-    >
+    <NAlert v-if="error" type="error" closable @close="clearError">
       {{ error }}
     </NAlert>
 
     <!-- Actions -->
     <NSpace v-if="authStore.isAuthenticated">
-      <NButton
-        type="primary"
-        @click="handleCreateStatement"
-      >
-        Create Example Statement
-      </NButton>
+      <NButton type="primary" @click="handleCreateStatement"> Create Example Statement </NButton>
     </NSpace>
 
-    <SmartSearch
-      @pending="searchPending = $event"
-      @search="handleSearch"
-    />
+    <SmartSearch @pending="searchPending = $event" @search="handleSearch" />
 
     <div class="visually-hidden" aria-live="polite">{{ resultsAnnouncement }}</div>
 
@@ -129,15 +108,9 @@ async function reload() {
       </div>
 
       <!-- Empty State -->
-      <NEmpty
-        v-else-if="!busy"
-        description="No statements found"
-        style="padding: 2rem"
-      >
+      <NEmpty v-else-if="!busy" description="No statements found" style="padding: 2rem">
         <template #extra>
-          <NButton size="small" @click="reload()">
-            Refresh
-          </NButton>
+          <NButton size="small" @click="reload()"> Refresh </NButton>
         </template>
       </NEmpty>
 

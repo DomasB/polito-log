@@ -7,8 +7,8 @@
  * silently aborted token creation. Fall back to a non-crypto id there.
  */
 export function generateId(): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID()
-    }
-    return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 }

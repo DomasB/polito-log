@@ -50,8 +50,9 @@ npx vitest run           # single run, as in CI
 
 CI (`.github/workflows/frontend-ci.yml`) runs `npm run build` (type-check and build) and `npx vitest run` on every push to `main` and every PR that touches `frontend/`. Railway only deploys the frontend once that run is green. See [DEPLOYMENT.md](../DEPLOYMENT.md).
 
-### Lint with [ESLint](https://eslint.org/)
+### Lint and format with [oxlint](https://oxc.rs/docs/guide/usage/linter) and [oxfmt](https://oxc.rs/docs/guide/usage/formatter)
 
 ```sh
-npm run lint
+npm run lint     # oxlint --fix (config: .oxlintrc.json)
+npm run format   # oxfmt src/   (config: .oxfmtrc.json)
 ```
