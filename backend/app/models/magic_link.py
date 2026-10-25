@@ -11,7 +11,8 @@ class MagicLink(Base):
     __tablename__ = "magic_links"
 
     id: int = Column(Integer, primary_key=True, index=True)
-    token: str = Column(String(255), unique=True, nullable=False, index=True)
+    # SHA-256 hex digest of the token; the token itself is only ever in the email.
+    token_hash: str = Column(String(64), unique=True, nullable=False, index=True)
     email: str = Column(String(255), nullable=False, index=True)
     user_id: int = Column(Integer, ForeignKey("users.id"), nullable=True)  # Null for new users
     is_used: bool = Column(Boolean, default=False, nullable=False)

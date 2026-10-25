@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 from sqlalchemy.orm import Session
 
@@ -7,7 +7,11 @@ from app.repositories.magic_link import MagicLinkRepository
 from app.models.user import User
 from app.models.magic_link import MagicLink
 from app.schemas.user import UserCreate
-from app.core.security import generate_magic_link_token, create_access_token
+from app.core.security import (
+    create_access_token,
+    generate_magic_link_token,
+    hash_magic_link_token,
+)
 from app.core.email import EmailSender
 from app.core.usernames import is_reserved_username
 from app.config import settings
@@ -51,13 +55,13 @@ class AuthService:
         token = generate_magic_link_token()
 
         # Calculate expiration time
-        expires_at = datetime.utcnow() + timedelta(
+        expires_at = datetime.now(timezone.utc) + timedelta(
             minutes=settings.MAGIC_LINK_EXPIRE_MINUTES
         )
 
-        # Create magic link record
+        # Create magic link record; only the token's hash is stored
         magic_link = MagicLink(
-            token=token,
+            token_hash=hash_magic_link_token(token),
             email=email,
             user_id=user.id if user else None,
             expires_at=expires_at
@@ -92,19 +96,19 @@ class AuthService:
         Returns:
             Tuple of (User, JWT token) or None if invalid
         """
-        # Get valid magic link
-        magic_link = self.magic_link_repository.get_valid_by_token(token)
+        # Use the link (and invalidate the email's other links) in one step
+        email = self.magic_link_repository.consume(hash_magic_link_token(token))
 
-        if not magic_link:
+        if not email:
             return None
 
         # Get or create user
-        user = self.user_repository.get_by_email(magic_link.email)
+        user = self.user_repository.get_by_email(email)
 
         if not user:
             # Create new user with email as username initially.
             # New users always get the default role; only `app.cli grant-role` changes it.
-            username = magic_link.email.split("@")[0]
+            username = email.split("@")[0]
             if is_reserved_username(username):
                 username = "user"
             # Ensure username is unique
@@ -115,17 +119,11 @@ class AuthService:
                 counter += 1
 
             user = User(
-                email=magic_link.email,
+                email=email,
                 username=username,
                 is_active=True
             )
             user = self.user_repository.create(user)
-
-        # Update last login
-        self.user_repository.update(user)
-
-        # Mark magic link as used
-        self.magic_link_repository.mark_as_used(magic_link)
 
         return user, self.create_session_token(user)
 

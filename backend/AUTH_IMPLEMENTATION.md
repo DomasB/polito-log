@@ -186,13 +186,20 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
    - Magic links expire in 15 minutes
    - JWT tokens expire in 7 days (configurable)
    - Used magic links are marked and cannot be reused
+   - Using a link also invalidates every other outstanding link for that email
+   - Use is one atomic `UPDATE ... RETURNING`, so concurrent requests cannot
+     both log in with the same link
 
-3. **No Cookies**
+3. **Hashed at Rest**
+   - Only the SHA-256 of each magic link token is stored; the token itself
+     exists only in the email
+
+4. **No Cookies**
    - JWT tokens sent via Authorization header
    - Frontend manages token storage
    - No CSRF vulnerabilities
 
-4. **User Verification**
+5. **User Verification**
    - Email-based identity verification
    - Automatic user creation on first login
    - Active user checks on each request
@@ -268,7 +275,7 @@ The system creates two new tables:
 
 ### `magic_links` table
 - `id` (primary key)
-- `token` (unique, indexed)
+- `token_hash` (SHA-256 hex of the token; unique, indexed)
 - `email` (indexed)
 - `user_id` (foreign key, nullable)
 - `is_used`
