@@ -83,7 +83,7 @@ describe('useSearch', () => {
     })
 
     it('lets a plugin intercept a key', () => {
-        const onKeyDown = vi.fn(() => true) // Return true to handle
+        const onKeyDown = vi.fn<() => boolean>(() => true) // Return true to handle
         registry.register({
             id: 'test-keyboard',
             type: 'action' as const,
@@ -137,7 +137,7 @@ describe('useSearch', () => {
         })
 
         it('debounces requests while typing', async () => {
-            const getSuggestions = vi.fn(async () => [])
+            const getSuggestions = vi.fn<() => Promise<never[]>>(async () => [])
             registry.register({ ...StatusPlugin, id: 'spy', keys: ['spy'], getSuggestions })
             const { buffer } = useSearch(registry)
 

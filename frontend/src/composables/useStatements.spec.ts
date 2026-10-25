@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { StatementResponse } from '@/api/types.gen'
 
 vi.mock('@/api/sdk.gen', () => ({
-  getStatementsApiV1StatementsGet: vi.fn(),
-  searchStatementsApiV1StatementsSearchGet: vi.fn()
+  getStatementsApiV1StatementsGet: vi.fn<(...args: unknown[]) => unknown>(),
+  searchStatementsApiV1StatementsSearchGet: vi.fn<(...args: unknown[]) => unknown>()
 }))
 
 import { getStatementsApiV1StatementsGet, searchStatementsApiV1StatementsSearchGet } from '@/api/sdk.gen'
