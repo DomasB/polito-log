@@ -3,7 +3,6 @@ import { ref, computed, onMounted } from 'vue'
 import {
   NSpace,
   NButton,
-  NSpin,
   NAlert,
   NEmpty,
   NH2
@@ -12,6 +11,7 @@ import { useStatements } from '@/composables/useStatements'
 import { useAuthStore } from '@/stores/auth'
 import type { StatementCreate } from '@/api/types.gen'
 import StatementCard from '@/components/StatementCard.vue'
+import AppLoader from '@/components/AppLoader.vue'
 import SmartSearch from './search/ui/SmartSearch.vue'
 import type { SearchQuery } from './search/core/types'
 
@@ -118,8 +118,8 @@ async function reload() {
 
     <div class="visually-hidden" aria-live="polite">{{ resultsAnnouncement }}</div>
 
-    <!-- Statements List: stays mounted under the spinner while loading -->
-    <NSpin :show="busy">
+    <!-- Statements List: stays mounted under the loader while loading -->
+    <AppLoader :show="busy">
       <div v-if="visibleStatements.length > 0" class="statement-list">
         <StatementCard
           v-for="statement in visibleStatements"
@@ -142,7 +142,7 @@ async function reload() {
       </NEmpty>
 
       <div v-else class="loading-placeholder" />
-    </NSpin>
+    </AppLoader>
   </NSpace>
 </template>
 

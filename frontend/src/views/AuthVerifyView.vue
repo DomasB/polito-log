@@ -2,7 +2,8 @@
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { NCard, NSpin, NResult, NButton, useMessage } from 'naive-ui'
+import AppLoader from '@/components/AppLoader.vue'
+import { NCard, NResult, NButton, useMessage } from 'naive-ui'
 
 const router = useRouter()
 const route = useRoute()
@@ -38,7 +39,7 @@ onMounted(async () => {
   <div class="verify-container">
     <n-card class="verify-card">
       <div v-if="authStore.isLoading" class="loading-state">
-        <n-spin size="large" />
+        <AppLoader />
         <p style="margin-top: 16px">Verifying your magic link...</p>
       </div>
 
