@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { NList, NListItem, NThing, NTag, NText, NCard, NScrollbar, useThemeVars } from 'naive-ui'
 import type { Suggestion } from '../core/types'
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onBeforeUpdate } from 'vue'
 
 const props = defineProps<{
   suggestions: Suggestion[]
   activeIndex: number
+  listboxId: string
 }>()
 
 const emit = defineEmits<{
@@ -14,6 +15,10 @@ const emit = defineEmits<{
 
 const themeVars = useThemeVars()
 const itemRefs = ref<HTMLElement[]>([])
+
+onBeforeUpdate(() => {
+  itemRefs.value = []
+})
 
 // Scroll active item into view
 watch(() => props.activeIndex, (newIndex) => {
@@ -26,31 +31,66 @@ watch(() => props.activeIndex, (newIndex) => {
     })
   }
 })
+
+// A tap selects only if it starts and ends on the same item with the same
+// pointer, so a drag released over an item (or a scroll) doesn't select.
+let press: { pointerId: number; index: number } | null = null
+
+function onPointerDown(e: PointerEvent, index: number) {
+  press = e.button === 0 ? { pointerId: e.pointerId, index } : null
+}
+
+function onPointerUp(e: PointerEvent, index: number, item: Suggestion) {
+  const started = press
+  press = null
+  if (started && started.pointerId === e.pointerId && started.index === index) {
+    emit('select', item)
+  }
+}
+
+function onPointerAbort() {
+  press = null
+}
+
+// Synthetic clicks from screen readers and keyboards have no pointer events
+function onClick(e: MouseEvent, item: Suggestion) {
+  if (e.detail === 0) emit('select', item)
+}
+
+function optionId(index: number) {
+  return `${props.listboxId}-${index}`
+}
 </script>
 
 <template>
-  <div 
-    class="suggestion-list-wrapper" 
+  <div
+    class="suggestion-list-wrapper"
     v-if="suggestions.length > 0"
     :style="{ '--n-hover-color': themeVars.hoverColor }"
   >
     <NCard content-style="padding: 0;" size="small" bordered>
       <NScrollbar style="max-height: 300px">
-        <NList hoverable clickable>
+        <NList :id="listboxId" role="listbox" aria-label="Suggestions" hoverable clickable>
           <NListItem
             v-for="(item, index) in suggestions"
-            :key="index"
+            :key="`${item.type}:${item.value}`"
+            :id="optionId(index)"
+            role="option"
+            :aria-selected="index === activeIndex"
             class="suggestion-item"
             :class="{ 'active-item': index === activeIndex }"
-            @pointerdown.prevent
-            @pointerup="emit('select', item)"
+            @pointerdown.prevent="onPointerDown($event, index)"
+            @pointerup="onPointerUp($event, index, item)"
+            @pointercancel="onPointerAbort"
+            @pointerleave="onPointerAbort"
+            @click="onClick($event, item)"
             :ref="el => { if (el) itemRefs[index] = (el as any).$el || el }"
           >
             <NThing content-indented>
               <template #header>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <NTag v-if="item.type === 'key'" type="info" size="small" :bordered="false">Key</NTag>
-                  <NTag v-else-if="item.type === 'value'" type="success" size="small" :bordered="false">Value</NTag>
+                  <NTag v-if="item.type === 'key'" type="info" size="small" :bordered="false" aria-hidden="true">Key</NTag>
+                  <NTag v-else-if="item.type === 'value'" type="success" size="small" :bordered="false" aria-hidden="true">Value</NTag>
                   <NText strong>{{ item.label }}</NText>
                 </div>
               </template>

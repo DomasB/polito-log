@@ -31,7 +31,7 @@ export interface BasePlugin {
 
 export interface Suggestion {
     label: string
-    value: any
+    value: string
     type?: 'value' | 'key' | 'operator'
     icon?: string
     description?: string
@@ -44,7 +44,7 @@ export interface FilterPlugin extends BasePlugin {
     supportedOperators: string[] // e.g. [':', '=', '!=']
 
     // Parse a raw string value into the internal representation
-    parseValue: (raw: string) => any
+    parseValue: (raw: string) => unknown
 
     // Get suggestions for values given the current input
     getSuggestions: (input: string, context: SearchContext) => Promise<Suggestion[]>
@@ -53,7 +53,7 @@ export interface FilterPlugin extends BasePlugin {
     component?: Component
 
     // Validate the value
-    validate?: (value: any) => boolean | string
+    validate?: (value: unknown) => boolean | string
 }
 
 // --- Operator Plugin ---
@@ -99,7 +99,7 @@ export interface FilterToken extends BaseToken {
     filterKey: string
     operator: string   // the symbol as typed, e.g. ':'
     operatorId: string // the operator plugin id, e.g. 'equals'
-    value: any
+    value: unknown
     pluginId: string
     // Set when the operator or value is invalid; the token is shown but not applied
     error?: string
@@ -111,5 +111,5 @@ export type SearchToken = TextToken | FilterToken
 
 export interface SearchQuery {
     text: string
-    filters: { pluginId: string; key: string; operatorId: string; value: any }[]
+    filters: { pluginId: string; key: string; operatorId: string; value: unknown }[]
 }

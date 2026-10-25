@@ -1,4 +1,4 @@
-import type { FilterPlugin, Suggestion, SearchContext } from '../../core/types'
+import type { FilterPlugin, Suggestion } from '../../core/types'
 
 // TextPlugin is a bit special, it might not be a "FilterPlugin" in the strict sense 
 // if we treat it as a fallback. But if we want to support "text:value" explicitly:
@@ -13,7 +13,7 @@ export const TextPlugin: FilterPlugin = {
         return raw
     },
 
-    async getSuggestions(input: string, context: SearchContext): Promise<Suggestion[]> {
+    async getSuggestions(): Promise<Suggestion[]> {
         return []
     }
 }
