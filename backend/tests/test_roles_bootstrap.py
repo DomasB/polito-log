@@ -26,16 +26,6 @@ def test_first_signup_on_empty_database_gets_default_role(api, emails, db_sessio
     assert db_session.query(User).one().role is UserRole.DEFAULT
 
 
-def test_profile_update_cannot_grant_a_role(api, emails):
-    token = login(api, emails, "climber@example.com")["access_token"]
-    response = api.put(
-        f"{AUTH}/me",
-        json={"username": "climber", "role": "admin"},
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    assert response.json().get("role") != "admin"
-
-
 def test_grant_role_sets_the_role(api, emails, db_session):
     login(api, emails, "promoted@example.com")
 

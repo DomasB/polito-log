@@ -3,14 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.services.auth import AuthService
+from app.services.auth import AuthService, UsernameUnavailableError
 from app.schemas.auth import (
     MagicLinkRequest,
     MagicLinkResponse,
     TokenResponse,
     TokenVerify
 )
-from app.schemas.user import UserResponse, UserSummary, UserUpdate
+from app.schemas.user import UserResponse, UserSelfUpdate, UserSummary
 from app.core.dependencies import get_email_sender, get_current_user
 from app.core.email import EmailSender
 from app.models.user import User
@@ -143,12 +143,13 @@ def get_current_user_profile(
     summary="Update current user profile"
 )
 def update_current_user_profile(
-    user_update: UserUpdate,
+    user_update: UserSelfUpdate,
     current_user: User = Depends(get_current_user),
     service: AuthService = Depends(get_auth_service)
 ) -> UserResponse:
     """
-    Update the current authenticated user's profile.
+    Update the current authenticated user's profile. Only the username can
+    be changed; any other field is rejected with 422.
 
     Args:
         user_update: User update data
@@ -159,20 +160,18 @@ def update_current_user_profile(
         Updated user profile
 
     Raises:
-        HTTPException: 400 if username is already taken
+        HTTPException: 400 if the username is reserved or already taken
     """
-    updated_user = service.update_user_profile(
-        user_id=current_user.id,
-        username=user_update.username
-    )
-
-    if not updated_user:
+    try:
+        return service.update_user_profile(
+            user_id=current_user.id,
+            username=user_update.username
+        )
+    except UsernameUnavailableError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken"
+            detail=str(error)
         )
-
-    return updated_user
 
 
 @router.post(

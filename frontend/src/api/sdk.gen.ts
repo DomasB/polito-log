@@ -321,7 +321,8 @@ export const getCurrentUserProfileApiV1AuthMeGet = <ThrowOnError extends boolean
 /**
  * Update current user profile
  *
- * Update the current authenticated user's profile.
+ * Update the current authenticated user's profile. Only the username can
+ * be changed; any other field is rejected with 422.
  *
  * Args:
  * user_update: User update data
@@ -332,7 +333,7 @@ export const getCurrentUserProfileApiV1AuthMeGet = <ThrowOnError extends boolean
  * Updated user profile
  *
  * Raises:
- * HTTPException: 400 if username is already taken
+ * HTTPException: 400 if the username is reserved or already taken
  */
 export const updateCurrentUserProfileApiV1AuthMePut = <ThrowOnError extends boolean = false>(options: Options<UpdateCurrentUserProfileApiV1AuthMePutData, ThrowOnError>) => {
     return (options.client ?? client).put<UpdateCurrentUserProfileApiV1AuthMePutResponses, UpdateCurrentUserProfileApiV1AuthMePutErrors, ThrowOnError>({

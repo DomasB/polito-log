@@ -17,12 +17,13 @@ class UserCreate(UserBase):
     pass
 
 
-class UserUpdate(BaseModel):
-    """Schema for updating an existing user. All fields are optional."""
+class UserSelfUpdate(BaseModel):
+    """Schema for a user updating their own profile. Only the username can change."""
 
-    email: Optional[EmailStr] = None
     username: Optional[str] = Field(None, min_length=3, max_length=100)
-    is_active: Optional[bool] = None
+
+    # Anything else (email, is_active, role, ...) is a 422, not silently ignored.
+    model_config = ConfigDict(extra="forbid")
 
 
 class UserInDB(UserBase):
@@ -45,9 +46,9 @@ class UserResponse(UserInDB):
 class UserPublic(BaseModel):
     """Schema for public user information (limited fields)."""
 
+    # No role: who the moderators and admins are is not public (polito-log-1g4.7).
     id: int
     username: str
-    role: UserRole
 
     model_config = ConfigDict(from_attributes=True)
 

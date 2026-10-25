@@ -8,7 +8,7 @@ from app.schemas.statement import (
 from app.schemas.user import (
     UserBase,
     UserCreate,
-    UserUpdate,
+    UserSelfUpdate,
     UserInDB,
     UserResponse,
     UserPublic,
@@ -29,7 +29,7 @@ __all__ = [
     "StatementResponse",
     "UserBase",
     "UserCreate",
-    "UserUpdate",
+    "UserSelfUpdate",
     "UserInDB",
     "UserResponse",
     "UserPublic",

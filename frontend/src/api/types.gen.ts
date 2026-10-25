@@ -293,6 +293,18 @@ export type UserResponse = {
 export type UserRole = 'admin' | 'moderator' | 'default';
 
 /**
+ * UserSelfUpdate
+ *
+ * Schema for a user updating their own profile. Only the username can change.
+ */
+export type UserSelfUpdate = {
+    /**
+     * Username
+     */
+    username?: string | null;
+};
+
+/**
  * UserSummary
  *
  * Schema for the user returned alongside an access token.
@@ -311,26 +323,6 @@ export type UserSummary = {
      */
     username: string;
     role: UserRole;
-};
-
-/**
- * UserUpdate
- *
- * Schema for updating an existing user. All fields are optional.
- */
-export type UserUpdate = {
-    /**
-     * Email
-     */
-    email?: string | null;
-    /**
-     * Username
-     */
-    username?: string | null;
-    /**
-     * Is Active
-     */
-    is_active?: boolean | null;
 };
 
 /**
@@ -768,7 +760,7 @@ export type GetCurrentUserProfileApiV1AuthMeGetResponses = {
 export type GetCurrentUserProfileApiV1AuthMeGetResponse = GetCurrentUserProfileApiV1AuthMeGetResponses[keyof GetCurrentUserProfileApiV1AuthMeGetResponses];
 
 export type UpdateCurrentUserProfileApiV1AuthMePutData = {
-    body: UserUpdate;
+    body: UserSelfUpdate;
     path?: never;
     query?: never;
     url: '/api/v1/auth/me';

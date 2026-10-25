@@ -9,7 +9,12 @@ from app.models.magic_link import MagicLink
 from app.schemas.user import UserCreate
 from app.core.security import generate_magic_link_token, create_access_token
 from app.core.email import EmailSender
+from app.core.usernames import is_reserved_username
 from app.config import settings
+
+
+class UsernameUnavailableError(Exception):
+    """Raised when a requested username is reserved or already taken."""
 
 
 class AuthService:
@@ -100,6 +105,8 @@ class AuthService:
             # Create new user with email as username initially.
             # New users always get the default role; only `app.cli grant-role` changes it.
             username = magic_link.email.split("@")[0]
+            if is_reserved_username(username):
+                username = "user"
             # Ensure username is unique
             base_username = username
             counter = 1
@@ -180,16 +187,20 @@ class AuthService:
 
         Returns:
             Updated User instance or None if not found
+
+        Raises:
+            UsernameUnavailableError: If the username is reserved or taken
         """
         user = self.user_repository.get_by_id(user_id)
         if not user:
             return None
 
-        if username:
-            # Check if username is already taken
+        if username and username != user.username:
+            if is_reserved_username(username):
+                raise UsernameUnavailableError("Username is reserved")
             existing = self.user_repository.get_by_username(username)
             if existing and existing.id != user_id:
-                return None
+                raise UsernameUnavailableError("Username already taken")
             user.username = username
 
         return self.user_repository.update(user)
