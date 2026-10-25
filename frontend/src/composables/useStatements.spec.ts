@@ -52,7 +52,7 @@ describe('useStatements list requests', () => {
 
     const { statements, loading, error, fetchStatements, searchStatements } = useStatements()
     const firstDone = fetchStatements()
-    const secondDone = searchStatements('climate')
+    const secondDone = searchStatements({ q: 'climate' })
 
     await firstDone
     expect(first.signal?.aborted).toBe(true)
@@ -79,8 +79,8 @@ describe('useStatements list requests', () => {
       .mockImplementationOnce(second.impl as never)
 
     const { statements, searchStatements } = useStatements()
-    const firstDone = searchStatements('a')
-    const secondDone = searchStatements('ab')
+    const firstDone = searchStatements({ q: 'a' })
+    const secondDone = searchStatements({ q: 'ab' })
 
     second.resolve({ data: [statement(2)] })
     await secondDone

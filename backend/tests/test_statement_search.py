@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import pytest
 
 from app.config import settings
-from app.models.statement import Statement
+from app.models.statement import Statement, StatementStatus
 
 SEARCH = f"{settings.API_V1_PREFIX}/statements/search/"
 
@@ -17,6 +17,8 @@ def statements(db_session):
             party="Search Party",
             statement_text=text,
             statement_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            # Anonymous searches only see verified statements.
+            status=StatementStatus.VERIFIED,
         )
         for text in texts
     )

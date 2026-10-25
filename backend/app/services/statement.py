@@ -2,8 +2,30 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.repositories.statement import StatementRepository
+from app.models.enums import UserRole
 from app.models.statement import Statement, StatementStatus
-from app.schemas.statement import StatementCreate, StatementUpdate
+from app.models.user import User
+from app.schemas.statement import StatementCreate, StatementSearchFilters, StatementUpdate
+
+
+class StatementPermissionError(Exception):
+    """The caller's role does not allow the requested status read or write."""
+
+
+def can_moderate(current_user: Optional[User]) -> bool:
+    """
+    Whether `current_user` (the authenticated caller, or None if anonymous)
+    may see and set every status, i.e. is a moderator or admin.
+    """
+    return current_user is not None and current_user.role.at_least(UserRole.MODERATOR)
+
+
+def _visible_statuses(current_user: Optional[User]) -> Optional[List[StatementStatus]]:
+    """
+    Statuses `current_user` may list: None (all) for moderators and admins,
+    only verified for anonymous and default users.
+    """
+    return None if can_moderate(current_user) else [StatementStatus.VERIFIED]
 
 
 class StatementService:
@@ -19,22 +41,29 @@ class StatementService:
         self.repository = StatementRepository(db)
         self.db = db
 
-    def create_statement(self, statement_data: StatementCreate) -> Statement:
+    def create_statement(
+        self, statement_data: StatementCreate, current_user: Optional[User] = None
+    ) -> Statement:
         """
-        Create a new statement.
+        Create a new statement. Unless `current_user` is a moderator or admin, the
+        status is forced to pending whatever the payload says.
 
         Args:
             statement_data: Statement creation data
+            current_user: User creating the statement
 
         Returns:
             Created Statement instance
         """
-        statement = Statement(**statement_data.model_dump())
+        data = statement_data.model_dump()
+        if not can_moderate(current_user):
+            data["status"] = StatementStatus.PENDING
+        statement = Statement(**data)
         return self.repository.create(statement)
 
     def get_statement_by_id(self, statement_id: int) -> Optional[Statement]:
         """
-        Get statement by ID.
+        Get statement by ID, whatever its status.
 
         Args:
             statement_id: Statement ID
@@ -48,43 +77,58 @@ class StatementService:
         self,
         skip: int = 0,
         limit: int = 100,
-        active_only: bool = True
+        active_only: bool = True,
+        current_user: Optional[User] = None
     ) -> List[Statement]:
         """
-        Get all statements with pagination.
+        Get all statements with pagination. Anonymous and default users only
+        get verified statements.
 
         Args:
             skip: Number of records to skip
             limit: Maximum number of records to return
             active_only: If True, return only active statements
+            current_user: Requesting user, or None if anonymous
 
         Returns:
             List of Statement instances
         """
+        statuses = _visible_statuses(current_user)
         if active_only:
-            return self.repository.get_active_statements(skip=skip, limit=limit)
-        return self.repository.get_all(skip=skip, limit=limit)
+            return self.repository.get_active_statements(
+                skip=skip, limit=limit, statuses=statuses
+            )
+        return self.repository.get_all_statements(skip=skip, limit=limit, statuses=statuses)
 
     def update_statement(
         self,
         statement_id: int,
-        statement_data: StatementUpdate
+        statement_data: StatementUpdate,
+        current_user: Optional[User] = None
     ) -> Optional[Statement]:
         """
-        Update an existing statement.
+        Update an existing statement. Only moderators and admins may set status.
 
         Args:
             statement_id: Statement ID
             statement_data: Statement update data
+            current_user: User making the change
 
         Returns:
             Updated Statement instance or None if not found
+
+        Raises:
+            StatementPermissionError: If the payload sets status and `current_user`
+                is not a moderator or admin
         """
+        update_data = statement_data.model_dump(exclude_unset=True)
+        if "status" in update_data and not can_moderate(current_user):
+            raise StatementPermissionError("Setting 'status' requires the moderator role")
+
         statement = self.repository.get_by_id(statement_id)
         if not statement:
             return None
 
-        update_data = statement_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(statement, field, value)
 
@@ -110,77 +154,111 @@ class StatementService:
         self,
         politician_name: str,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        current_user: Optional[User] = None
     ) -> List[Statement]:
         """
-        Get statements by politician name.
+        Get statements by politician name. Anonymous and default users only
+        get verified statements.
 
         Args:
             politician_name: Name of the politician
             skip: Number of records to skip
             limit: Maximum number of records to return
+            current_user: Requesting user, or None if anonymous
 
         Returns:
             List of Statement instances
         """
-        return self.repository.get_by_politician(politician_name, skip, limit)
+        return self.repository.get_by_politician(
+            politician_name, skip, limit, statuses=_visible_statuses(current_user)
+        )
 
     def get_statements_by_party(
         self,
         party: str,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        current_user: Optional[User] = None
     ) -> List[Statement]:
         """
-        Get statements by party.
+        Get statements by party. Anonymous and default users only get
+        verified statements.
 
         Args:
             party: Name of the party
             skip: Number of records to skip
             limit: Maximum number of records to return
+            current_user: Requesting user, or None if anonymous
 
         Returns:
             List of Statement instances
         """
-        return self.repository.get_by_party(party, skip, limit)
+        return self.repository.get_by_party(
+            party, skip, limit, statuses=_visible_statuses(current_user)
+        )
 
     def get_statements_by_status(
         self,
         status: StatementStatus,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        current_user: Optional[User] = None
     ) -> List[Statement]:
         """
-        Get statements by verification status.
+        Get statements by verification status. Anonymous and default users
+        only get verified statements, so any other status gives them [].
 
         Args:
             status: Statement status
             skip: Number of records to skip
             limit: Maximum number of records to return
+            current_user: Requesting user, or None if anonymous
 
         Returns:
             List of Statement instances
         """
-        return self.repository.get_by_status(status, skip, limit)
+        return self.repository.get_by_status(
+            status, skip, limit, statuses=_visible_statuses(current_user)
+        )
 
     def search_statements(
         self,
-        search_text: str,
+        filters: StatementSearchFilters,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        current_user: Optional[User] = None,
     ) -> List[Statement]:
         """
-        Search statements by text.
+        Search statements by text and filters (see
+        StatementRepository.search_statements for matching rules).
+
+        Anonymous and default users only get verified statements and may not
+        filter by status; moderators and admins get every status unless they
+        filter.
 
         Args:
-            search_text: Text to search for
+            filters: Text and field filters
             skip: Number of records to skip
             limit: Maximum number of records to return
+            current_user: Requesting user, or None if anonymous
 
         Returns:
             List of Statement instances
+
+        Raises:
+            StatementPermissionError: If a non-moderator filters by status
         """
-        return self.repository.search_statements(search_text, skip, limit)
+        if not can_moderate(current_user):
+            for param in ("status", "status_not"):
+                if getattr(filters, param):
+                    raise StatementPermissionError(
+                        f"Filtering by '{param}' requires the moderator role"
+                    )
+            filters = filters.model_copy(
+                update={"status": _visible_statuses(current_user)}
+            )
+        return self.repository.search_statements(filters, skip, limit)
 
     def count_statements(self, active_only: bool = True) -> int:
         """

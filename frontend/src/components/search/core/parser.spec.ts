@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { SearchParser } from './parser'
 import { SearchRegistry } from './registry'
 import { StatusPlugin } from '../plugins/filters/StatusPlugin'
-import { EqualsOperator, NotEqualsOperator } from '../plugins/operators/EqualsOperator'
+import { EqualsOperator } from '../plugins/operators/EqualsOperator'
 import type { FilterToken, SearchToken } from './types'
 
 function asFilter(token: SearchToken | undefined): FilterToken {
@@ -16,7 +16,6 @@ describe('SearchParser', () => {
   beforeEach(() => {
     const registry = new SearchRegistry()
     registry.register(EqualsOperator)
-    registry.register(NotEqualsOperator)
     registry.register(StatusPlugin)
     parser = new SearchParser(registry)
   })
@@ -29,16 +28,12 @@ describe('SearchParser', () => {
     ])
   })
 
-  it.each([
-    [':', 'equals'],
-    ['=', 'equals'],
-    ['!=', 'not-equals'],
-  ])('parses a known filter with "%s"', (symbol, operatorId) => {
+  it.each([':', '='])('parses a known filter with "%s"', (symbol) => {
     const token = asFilter(parser.parse(`status${symbol}verified`)[0])
     expect(token.filterKey).toBe('status')
     expect(token.operator).toBe(symbol)
-    expect(token.operatorId).toBe(operatorId)
-    expect(token.value).toBe('verified')
+    expect(token.operatorId).toBe('equals')
+    expect(token.values).toEqual([{ value: 'verified', negated: false }])
     expect(token.pluginId).toBe('status')
     expect(token.error).toBeUndefined()
   })
@@ -46,7 +41,47 @@ describe('SearchParser', () => {
   it('resolves key aliases', () => {
     const token = asFilter(parser.parse('s:Pending')[0])
     expect(token.pluginId).toBe('status')
-    expect(token.value).toBe('pending')
+    expect(token.values).toEqual([{ value: 'pending', negated: false }])
+  })
+
+  it('parses a | list with per-value negation', () => {
+    const token = asFilter(parser.parse('status:Pending|!rejected|verified')[0])
+    expect(token.values).toEqual([
+      { value: 'pending', negated: false },
+      { value: 'rejected', negated: true },
+      { value: 'verified', negated: false },
+    ])
+    expect(token.error).toBeUndefined()
+  })
+
+  it('marks an invalid value anywhere in the list as an error token', () => {
+    const token = asFilter(parser.parse('status:pending|!xyz')[0])
+    expect(token.error).toBe('Invalid status: xyz')
+  })
+
+  it.each(['status:a||b', 'status:!', 'status:pending|', 'status:'])(
+    'marks an empty value in %s as an error token',
+    (input) => {
+      expect(asFilter(parser.parse(input)[0]).error).toMatch(/^Empty value/)
+    },
+  )
+
+  it('marks a repeated key as an error token suggesting the | form', () => {
+    const [first, second] = parser.parse('status:pending s:!verified').map(asFilter)
+    expect(first!.error).toBeUndefined()
+    expect(second!.error).toBe('s takes one value; use s:pending|!verified')
+  })
+
+  it('checks repeats against existing tokens, ignoring error tokens', () => {
+    const existing = parser.parse('status:xyz status:pending')
+    expect(asFilter(parser.parse('status:verified', existing)[0]).error).toBe(
+      'status takes one value; use status:pending|verified',
+    )
+    expect(asFilter(parser.parse('status:verified', existing.slice(0, 1))[0]).error).toBeUndefined()
+  })
+
+  it('no longer has a != operator', () => {
+    expect(parser.parse('status!=retracted')[0]!.type).toBe('text')
   })
 
   it('marks an invalid value as an error token', () => {
@@ -57,7 +92,7 @@ describe('SearchParser', () => {
   it('treats operator junk as an invalid value', () => {
     const token = asFilter(parser.parse('status:!~')[0])
     expect(token.operator).toBe(':')
-    expect(token.value).toBe('!~')
+    expect(token.values).toEqual([{ value: '~', negated: true }])
     expect(token.error).toBeDefined()
   })
 
@@ -79,9 +114,9 @@ describe('SearchParser', () => {
   })
 
   it('parses mixed content', () => {
-    const tokens = parser.parse('climate status!=retracted')
+    const tokens = parser.parse('climate status:!retracted')
     expect(tokens[0]!.type).toBe('text')
-    expect(asFilter(tokens[1]).operatorId).toBe('not-equals')
+    expect(asFilter(tokens[1]).values).toEqual([{ value: 'retracted', negated: true }])
   })
 
   it('handles Unicode text and keys', () => {

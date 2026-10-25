@@ -15,7 +15,7 @@ We move beyond just "Filter Plugins". The search bar is a command center. To sup
 ### 2.2 Operator Plugins (The "How")
 
 - **Role**: Define how values are compared.
-- **Responsibilities**: Parsing operators (`:`, `>`, `!=`), validating compatibility with Filter Plugins.
+- **Responsibilities**: Parsing operators (`:`, `>`), validating compatibility with Filter Plugins. Negation is value syntax (`key:!a`, see [Value syntax](#value-syntax)), not an operator.
 - **Example**:
   - `EqualityOperator` (`:`, `=`)
   - `RangeOperator` (`>`, `<`)
@@ -37,6 +37,23 @@ We move beyond just "Filter Plugins". The search bar is a command center. To sup
   - `RecentSearchesPlugin`: Shows history.
   - `SavedViewsPlugin`: Shows bookmarked queries.
   - `TrendingQueriesPlugin`: Shows what others are searching.
+
+## Value syntax
+
+The kernel owns the value syntax; filter plugins only parse and validate single values.
+
+- `key:a|b` matches `a` OR `b`.
+- A `!` prefix negates a single value: `key:!a` is "not `a`", and `key:a|!b` mixes the two.
+- Terms AND together: `status:verified party:LSDP` must match both.
+- Every current key is single-valued, so a repeated key (`status:a status:b`) gives an error chip that suggests the merged form (`status:a|b`). Error chips are shown but not applied.
+
+Before the query goes to the API, `core/reduce.ts` reduces a term's values:
+
+| Values                                         | Result                                        | API param                   |
+| ---------------------------------------------- | --------------------------------------------- | --------------------------- |
+| only plain (`a\|b`)                            | IN `{a, b}`                                   | `<pluginId>=a&<pluginId>=b` |
+| one negated, no matching plain (`a\|!b`, `!b`) | NOT IN `{b}` (plain values are implied by it) | `<pluginId>_not=b`          |
+| two different negated (`!a\|!b`), or `a\|!a`   | no constraint (always true)                   | dropped                     |
 
 ## 3. Updated Interfaces
 
@@ -89,6 +106,7 @@ The Registry now acts as a dependency injection container.
 ```typescript
 class SearchRegistry {
   register(plugin: BasePlugin) { ... }
+  unregister(id: string) { ... } // Drops the plugin and its keys, symbols and triggers
 
   getFilter(key: string): FilterPlugin | undefined { ... }
   getOperator(symbol: string): OperatorPlugin | undefined { ... }
@@ -101,6 +119,8 @@ class SearchRegistry {
   }
 }
 ```
+
+Registration can change at runtime. Role-gated filters use this: `setStatusFilterEnabled(enabled)` in `plugins/index.ts` registers `StatusPlugin` for moderators and admins and unregisters it otherwise, so other users get no `status:` suggestions or chips. The consumer still strips status params for those users (see `StatementExample.vue`), since the backend answers them 403.
 
 ## 5. Updated Parsing Flow
 

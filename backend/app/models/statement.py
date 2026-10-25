@@ -13,6 +13,7 @@ class StatementStatus(str, enum.Enum):
     VERIFIED = "verified"
     DISPUTED = "disputed"
     RETRACTED = "retracted"
+    REJECTED = "rejected"  # never verified
 
 
 class Statement(Base):
@@ -27,8 +28,16 @@ class Statement(Base):
     source_url: Optional[str] = Column(String(512), nullable=True)
     statement_date: datetime = Column(DateTime(timezone=True), nullable=False, index=True)
     category: Optional[str] = Column(String(100), nullable=True, index=True)
+    # Stored by value ('verified', not 'VERIFIED') and guarded by a CHECK constraint.
     status: StatementStatus = Column(
-        SQLEnum(StatementStatus),
+        SQLEnum(
+            StatementStatus,
+            name="statement_status",
+            native_enum=False,
+            length=20,
+            create_constraint=True,
+            values_callable=lambda statuses: [status.value for status in statuses],
+        ),
         default=StatementStatus.PENDING,
         nullable=False,
         index=True

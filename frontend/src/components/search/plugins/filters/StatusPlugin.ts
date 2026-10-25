@@ -6,6 +6,7 @@ const STATUSES = [
   'verified',
   'disputed',
   'retracted',
+  'rejected',
 ] as const satisfies readonly StatementStatus[]
 
 function isStatus(value: unknown): value is StatementStatus {
@@ -16,7 +17,7 @@ export const StatusPlugin: FilterPlugin = {
   id: 'status',
   type: 'filter',
   keys: ['status', 's'],
-  supportedOperators: ['equals', 'not-equals'], // IDs of operators
+  supportedOperators: ['equals'], // IDs of operators
 
   parseValue(raw: string) {
     return raw.toLowerCase()

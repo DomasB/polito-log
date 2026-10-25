@@ -165,7 +165,7 @@ export type StatementResponse = {
  *
  * Enum for statement verification status.
  */
-export type StatementStatus = 'pending' | 'verified' | 'disputed' | 'retracted'
+export type StatementStatus = 'pending' | 'verified' | 'disputed' | 'retracted' | 'rejected'
 
 /**
  * StatementUpdate
@@ -341,6 +341,16 @@ export type ValidationError = {
    * Error Type
    */
   type: string
+  /**
+   * Input
+   */
+  input?: unknown
+  /**
+   * Context
+   */
+  ctx?: {
+    [key: string]: unknown
+  }
 }
 
 export type GetStatementsApiV1StatementsGetData = {
@@ -519,6 +529,10 @@ export type UpdateStatementApiV1StatementsStatementIdPutErrors = {
    */
   401: unknown
   /**
+   * Payload sets status and the caller is not a moderator or admin
+   */
+  403: unknown
+  /**
    * Statement not found
    */
   404: unknown
@@ -670,19 +684,53 @@ export type GetStatementsByStatusApiV1StatementsStatusStatusGetResponse =
 export type SearchStatementsApiV1StatementsSearchGetData = {
   body?: never
   path?: never
-  query: {
+  query?: {
     /**
      * Q
      *
-     * Search query
+     * Free text, matched as a case-insensitive substring of the statement text, politician name or party (`%` and `_` are literal). Optional.
      */
-    q: string
+    q?: string | null
+    /**
+     * Status
+     *
+     * Only statements with one of these statuses (repeatable; OR / IN). Moderators and admins only.
+     */
+    status?: Array<StatementStatus> | null
+    /**
+     * Status Not
+     *
+     * Exclude statements with any of these statuses (repeatable; NOT IN). Moderators and admins only.
+     */
+    status_not?: Array<StatementStatus> | null
+    /**
+     * Politician
+     *
+     * Politician name filter. Repeat the parameter to match any of several values (OR). An unquoted value matches as a case-insensitive substring (`%` and `_` are literal); a value wrapped in double quotes, e.g. `"LSDP"`, matches the whole field exactly, case-insensitively.
+     */
+    politician?: Array<string> | null
+    /**
+     * Party
+     *
+     * Party filter. Repeat the parameter to match any of several values (OR). An unquoted value matches as a case-insensitive substring (`%` and `_` are literal); a value wrapped in double quotes, e.g. `"LSDP"`, matches the whole field exactly, case-insensitively.
+     */
+    party?: Array<string> | null
+    /**
+     * Category
+     *
+     * Category filter. Repeat the parameter to match any of several values (OR). An unquoted value matches as a case-insensitive substring (`%` and `_` are literal); a value wrapped in double quotes, e.g. `"LSDP"`, matches the whole field exactly, case-insensitively.
+     */
+    category?: Array<string> | null
     /**
      * Skip
+     *
+     * Number of records to skip
      */
     skip?: number
     /**
      * Limit
+     *
+     * Maximum number of records to return
      */
     limit?: number
   }
@@ -690,6 +738,10 @@ export type SearchStatementsApiV1StatementsSearchGetData = {
 }
 
 export type SearchStatementsApiV1StatementsSearchGetErrors = {
+  /**
+   * `status` or `status_not` sent by a caller who is not a moderator or admin
+   */
+  403: unknown
   /**
    * Validation Error
    */

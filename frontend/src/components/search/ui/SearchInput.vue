@@ -3,6 +3,7 @@ import { ref, computed, useId } from 'vue'
 import { NTag, NTooltip, NSpace, useThemeVars } from 'naive-ui'
 import type { SearchToken } from '../core/types'
 import { describeToken } from './describeToken'
+import { formatValues } from '../core/parser'
 
 const props = defineProps<{
   tokens: SearchToken[]
@@ -95,7 +96,7 @@ defineExpose({
           <NTag :type="tagType(token)" size="small" :class="{ 'token-error': hasError(token) }">
             <span v-if="token.type === 'filter'">
               <strong>{{ token.filterKey }}</strong
-              >{{ token.operator }}{{ token.value }}
+              >{{ token.operator }}{{ formatValues(token.values) }}
             </span>
             <span v-else>
               {{ token.value }}

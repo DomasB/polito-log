@@ -41,9 +41,9 @@ export interface Suggestion {
 export interface FilterPlugin extends BasePlugin {
   type: 'filter'
   keys: string[] // e.g. ['status', 's']
-  supportedOperators: string[] // e.g. [':', '=', '!=']
+  supportedOperators: string[] // operator plugin IDs, e.g. ['equals']
 
-  // Parse a raw string value into the internal representation
+  // Parse one raw value (an item of `a|!b`, without its `!`) into the internal representation
   parseValue: (raw: string) => unknown
 
   // Get suggestions for values given the current input
@@ -52,7 +52,7 @@ export interface FilterPlugin extends BasePlugin {
   // Optional custom renderer for the token
   component?: Component
 
-  // Validate the value
+  // Validate one parsed value
   validate?: (value: unknown) => boolean | string
 }
 
@@ -94,12 +94,18 @@ export interface TextToken extends BaseToken {
   value: string
 }
 
+// One item of a `key:a|!b` value list; the items are ORed
+export interface FilterValue {
+  value: unknown
+  negated: boolean
+}
+
 export interface FilterToken extends BaseToken {
   type: 'filter'
   filterKey: string
   operator: string // the symbol as typed, e.g. ':'
   operatorId: string // the operator plugin id, e.g. 'equals'
-  value: unknown
+  values: FilterValue[]
   pluginId: string
   // Set when the operator or value is invalid; the token is shown but not applied
   error?: string
@@ -111,5 +117,6 @@ export type SearchToken = TextToken | FilterToken
 
 export interface SearchQuery {
   text: string
-  filters: { pluginId: string; key: string; operatorId: string; value: unknown }[]
+  // Filters AND together; each filter's values OR together
+  filters: { pluginId: string; key: string; operatorId: string; values: FilterValue[] }[]
 }

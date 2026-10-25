@@ -61,6 +61,7 @@ const STATUS_TYPE_MAP: Record<StatementStatus, 'success' | 'warning' | 'error' |
   pending: 'warning',
   disputed: 'error',
   retracted: 'default',
+  rejected: 'error',
 }
 
 const statusKey = computed<StatementStatus>(() => props.statement.status ?? 'retracted')

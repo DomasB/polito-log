@@ -5,6 +5,7 @@
 To prevent "God Files" (monolithic parsers or renderers) as the system grows, we adopt a **Kernel + Plugins** architecture.
 
 - **The Kernel**: Handles the core loop (Input -> Parse -> State -> Render). It knows _how_ to process tokens but not _what_ they mean.
+- **The Kernel also owns the value syntax** (`key:a|!b`, see `PLUGINS.md` "Value syntax") and maps filters to API params (`query.ts`). A plugin's `pluginId` is its API param name; negated values go to `<pluginId>_not`.
 - **The Plugins**: Every filter type (e.g., `DateFilter`, `UserFilter`, `StatusFilter`) is a self-contained module. It defines its own syntax rules, suggestion logic, and UI components.
 
 ## 2. Directory Structure
@@ -14,6 +15,8 @@ src/components/search/
 ├── core/                   # The Kernel
 │   ├── registry.ts         # Central store for registered plugins
 │   ├── parser.ts           # Orchestrator that delegates to plugins
+│   ├── reduce.ts           # Reduces a term's `a|!b` values to IN / NOT IN / no constraint
+│   ├── query.ts            # Tokens -> SearchQuery -> API search params
 │   ├── state.ts            # Pinia store or Composable
 │   └── types.ts            # Shared interfaces
 ├── ui/                     # Generic UI Components

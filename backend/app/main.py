@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.core.errors import register_exception_handlers
 from app.routers import statement_router, auth_router
 
 
@@ -64,6 +65,8 @@ def create_application() -> FastAPI:
         response = await call_next(request)
         response.headers["Referrer-Policy"] = "no-referrer"
         return response
+
+    register_exception_handlers(app)
 
     # Include routers
     app.include_router(statement_router, prefix=settings.API_V1_PREFIX)

@@ -10,7 +10,17 @@ import {
   getStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGet,
   getStatementsByPartyApiV1StatementsPartyPartyGet,
 } from '@/api/sdk.gen'
-import type { StatementResponse, StatementCreate, StatementUpdate } from '@/api/types.gen'
+import type {
+  StatementResponse,
+  StatementCreate,
+  StatementUpdate,
+  SearchStatementsApiV1StatementsSearchGetData,
+} from '@/api/types.gen'
+
+export type StatementSearchFilters = Omit<
+  NonNullable<SearchStatementsApiV1StatementsSearchGetData['query']>,
+  'skip' | 'limit'
+>
 
 function isAbortError(err: unknown): boolean {
   return (
@@ -233,13 +243,16 @@ export function useStatements() {
   }
 
   /**
-   * Search statements by text
+   * Search statements by text and filters
    */
-  async function searchStatements(query: string, options: { skip?: number; limit?: number } = {}) {
+  async function searchStatements(
+    filters: StatementSearchFilters,
+    options: { skip?: number; limit?: number } = {},
+  ) {
     const data = await runListRequest('Search failed', (signal) =>
       searchStatementsApiV1StatementsSearchGet({
         query: {
-          q: query,
+          ...filters,
           skip: options.skip ?? 0,
           limit: options.limit ?? 100,
         },
