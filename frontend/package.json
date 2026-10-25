@@ -40,5 +40,10 @@
     "vite-plugin-vue-devtools": "^8.2.1",
     "vitest": "^5.0.5",
     "vue-tsc": "^3.3.13"
+  },
+  "overrides": {
+    "@hey-api/json-schema-ref-parser": {
+      "js-yaml": "^4.3.2"
+    }
   }
 }
