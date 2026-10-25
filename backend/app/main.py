@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
@@ -49,14 +49,21 @@ def create_application() -> FastAPI:
 
     app.openapi = custom_openapi
 
-    # Configure CORS
+    # Configure CORS: only the frontend's origin(s), see Settings.cors_origins
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure appropriately for production
+        allow_origins=settings.cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.middleware("http")
+    async def referrer_policy(request: Request, call_next):
+        # Never send a Referer from API responses (e.g. the docs pages)
+        response = await call_next(request)
+        response.headers["Referrer-Policy"] = "no-referrer"
+        return response
 
     # Include routers
     app.include_router(statement_router, prefix=settings.API_V1_PREFIX)
