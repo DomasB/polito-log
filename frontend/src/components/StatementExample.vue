@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   NSpace,
   NButton,
-  NInput,
   NSpin,
   NAlert,
   NEmpty,
@@ -13,21 +12,40 @@ import { useStatements } from '@/composables/useStatements'
 import { useAuthStore } from '@/stores/auth'
 import type { StatementCreate } from '@/api/types.gen'
 import StatementCard from '@/components/StatementCard.vue'
+import SmartSearch from './search/ui/SmartSearch.vue'
+import type { SearchQuery } from './search/core/types'
 
 const {
   statements,
   loading,
   error,
-  hasStatements,
   fetchStatements,
   createStatement,
   searchStatements,
   clearError
 } = useStatements()
 
-import SmartSearch from './search/ui/SmartSearch.vue'
 const authStore = useAuthStore()
-const searchQuery = ref('')
+
+const activeQuery = ref<SearchQuery>({ text: '', filters: [] })
+const searchPending = ref(false)
+const busy = computed(() => loading.value || searchPending.value)
+
+// Status filters are applied in the browser, over the (at most 100) fetched rows
+const visibleStatements = computed(() => {
+  const statusFilters = activeQuery.value.filters.filter(f => f.pluginId === 'status')
+  return statements.value.filter(s =>
+    statusFilters.every(f =>
+      f.operatorId === 'not-equals' ? s.status !== f.value : s.status === f.value
+    )
+  )
+})
+
+const resultsAnnouncement = computed(() => {
+  if (busy.value) return ''
+  const n = visibleStatements.value.length
+  return `${n} ${n === 1 ? 'statement' : 'statements'}`
+})
 
 // Fetch statements on component mount
 onMounted(async () => {
@@ -46,13 +64,21 @@ async function handleCreateStatement() {
     status: 'pending'
   }
 
-  const created = await createStatement(newStatement)
+  await createStatement(newStatement)
 }
 
-// Example: Search statements
-async function handleSearch(query: string) {
-  if (query.trim()) {
-    await searchStatements(query)
+async function handleSearch(query: SearchQuery) {
+  searchPending.value = false
+  const textChanged = query.text !== activeQuery.value.text
+  activeQuery.value = query
+  // Filter-only changes are applied client-side, no refetch needed
+  if (textChanged) await reload()
+}
+
+async function reload() {
+  const { text } = activeQuery.value
+  if (text) {
+    await searchStatements(text)
   } else {
     await fetchStatements()
   }
@@ -76,47 +102,47 @@ async function handleSearch(query: string) {
     </NAlert>
 
     <!-- Actions -->
-    <NSpace>
+    <NSpace v-if="authStore.isAuthenticated">
       <NButton
-        v-if="authStore.isAuthenticated"
-        type="primary" 
+        type="primary"
         @click="handleCreateStatement"
       >
         Create Example Statement
       </NButton>
-      <SmartSearch @search="handleSearch" />
     </NSpace>
 
-    <!-- Loading State -->
-    <div v-if="loading" style="text-align: center; padding: 2rem">
-      <NSpin size="large">
-        <template #description>
-          Loading statements...
+    <SmartSearch
+      @pending="searchPending = $event"
+      @search="handleSearch"
+    />
+
+    <div class="visually-hidden" aria-live="polite">{{ resultsAnnouncement }}</div>
+
+    <!-- Statements List: stays mounted under the spinner while loading -->
+    <NSpin :show="busy">
+      <div v-if="visibleStatements.length > 0" class="statement-list">
+        <StatementCard
+          v-for="statement in visibleStatements"
+          :key="statement.id"
+          :statement="statement"
+        />
+      </div>
+
+      <!-- Empty State -->
+      <NEmpty
+        v-else-if="!busy"
+        description="No statements found"
+        style="padding: 2rem"
+      >
+        <template #extra>
+          <NButton size="small" @click="reload()">
+            Refresh
+          </NButton>
         </template>
-      </NSpin>
-    </div>
+      </NEmpty>
 
-    <!-- Statements List -->
-    <div v-else-if="hasStatements" class="statement-list">
-      <StatementCard
-        v-for="statement in statements"
-        :key="statement.id"
-        :statement="statement"
-      />
-    </div>
-
-    <!-- Empty State -->
-    <NEmpty
-      v-else-if="!loading"
-      description="No statements found"
-      style="padding: 2rem"
-    >
-      <template #extra>
-        <NButton size="small" @click="fetchStatements()">
-          Refresh
-        </NButton>
-      </template>
-    </NEmpty>
+      <div v-else class="loading-placeholder" />
+    </NSpin>
   </NSpace>
 </template>
 
@@ -125,5 +151,21 @@ async function handleSearch(query: string) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.loading-placeholder {
+  min-height: 8rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 </style>

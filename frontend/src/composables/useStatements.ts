@@ -16,6 +16,10 @@ import type {
   StatementUpdate
 } from '@/api/types.gen'
 
+function isAbortError(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { name?: unknown }).name === 'AbortError'
+}
+
 /**
  * Composable for managing political statements
  * Provides reactive state and methods for CRUD operations on statements
@@ -32,34 +36,69 @@ export function useStatements() {
   const hasStatements = computed(() => statements.value.length > 0)
   const hasError = computed(() => error.value !== null)
 
+  // Shared by the list loaders, so a newer request supersedes an older one
+  let listController: AbortController | null = null
+  let listRequestId = 0
+
   /**
-   * Fetch all statements with pagination
+   * Run a request that replaces `statements`. Aborts the previous one; only
+   * the latest request writes results or errors and clears `loading`.
    */
-  async function fetchStatements(options: { skip?: number; limit?: number; activeOnly?: boolean } = {}) {
+  async function runListRequest(
+    errorMessage: string,
+    request: (signal: AbortSignal) => Promise<{ data?: StatementResponse[]; error?: unknown }>,
+    onData?: (data: StatementResponse[]) => void
+  ): Promise<StatementResponse[] | null> {
+    listController?.abort()
+    const controller = new AbortController()
+    listController = controller
+    const requestId = ++listRequestId
+    const isLatest = () => requestId === listRequestId
+
     loading.value = true
     error.value = null
 
     try {
-      const { data, error: apiError } = await getStatementsApiV1StatementsGet({
+      const { data, error: apiError } = await request(controller.signal)
+
+      if (apiError) {
+        throw new Error(errorMessage)
+      }
+
+      if (!isLatest()) return null
+      statements.value = data ?? []
+      onData?.(statements.value)
+      return statements.value
+    } catch (err) {
+      if (isLatest() && !isAbortError(err)) {
+        error.value = err instanceof Error ? err.message : 'Unknown error occurred'
+        console.error(`${errorMessage}:`, err)
+      }
+      return null
+    } finally {
+      if (isLatest()) {
+        loading.value = false
+        listController = null
+      }
+    }
+  }
+
+  /**
+   * Fetch all statements with pagination
+   */
+  async function fetchStatements(options: { skip?: number; limit?: number; activeOnly?: boolean } = {}) {
+    await runListRequest(
+      'Failed to fetch statements',
+      (signal) => getStatementsApiV1StatementsGet({
         query: {
           skip: options.skip ?? 0,
           limit: options.limit ?? 100,
           active_only: options.activeOnly ?? true
-        }
-      })
-
-      if (apiError) {
-        throw new Error('Failed to fetch statements')
-      }
-
-      statements.value = data as StatementResponse[]
-      totalCount.value = statements.value.length
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Unknown error occurred'
-      console.error('Error fetching statements:', err)
-    } finally {
-      loading.value = false
-    }
+        },
+        signal
+      }),
+      (data) => { totalCount.value = data.length }
+    )
   }
 
   /**
@@ -194,31 +233,18 @@ export function useStatements() {
    * Search statements by text
    */
   async function searchStatements(query: string, options: { skip?: number; limit?: number } = {}) {
-    loading.value = true
-    error.value = null
-
-    try {
-      const { data, error: apiError } = await searchStatementsApiV1StatementsSearchGet({
+    const data = await runListRequest(
+      'Search failed',
+      (signal) => searchStatementsApiV1StatementsSearchGet({
         query: {
           q: query,
           skip: options.skip ?? 0,
           limit: options.limit ?? 100
-        }
+        },
+        signal
       })
-
-      if (apiError) {
-        throw new Error('Search failed')
-      }
-
-      statements.value = data as StatementResponse[]
-      return data
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Unknown error occurred'
-      console.error('Error searching statements:', err)
-      return []
-    } finally {
-      loading.value = false
-    }
+    )
+    return data ?? []
   }
 
   /**

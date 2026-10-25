@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, onBeforeUnmount } from 'vue'
 import { useSearch } from '../core/state'
+import { toSearchQuery } from '../core/query'
 import '../plugins'
 import SearchInput from './SearchInput.vue'
 import SuggestionList from './SuggestionList.vue'
-import type { Suggestion } from '../core/types'
+import type { SearchQuery, Suggestion } from '../core/types'
+
+const SEARCH_DEBOUNCE_MS = 250
 
 const emit = defineEmits<{
-  (e: 'search', query: string): void
+  // A token change is waiting to be applied; false when it turned out a no-op
+  (e: 'pending', pending: boolean): void
+  (e: 'search', query: SearchQuery): void
 }>()
 
 const {
@@ -21,11 +26,28 @@ const {
   commit
 } = useSearch()
 
-// Emit the assembled query whenever the committed tokens change (value selected,
-// chip added via typing, or a chip removed) so the consumer can refresh results.
+// Emit the query (debounced) whenever the committed tokens change, so quick
+// edits like repeated Backspace produce one search. `tokens` is replaced on
+// every change, so a shallow watch suffices.
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+let lastQueryKey = JSON.stringify(toSearchQuery([]))
+
 watch(tokens, () => {
-  emit('search', tokens.value.map(t => t.raw).join(' '))
-}, { deep: true })
+  emit('pending', true)
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    const query = toSearchQuery(tokens.value)
+    const key = JSON.stringify(query)
+    if (key === lastQueryKey) {
+      emit('pending', false)
+      return
+    }
+    lastQueryKey = key
+    emit('search', query)
+  }, SEARCH_DEBOUNCE_MS)
+})
+
+onBeforeUnmount(() => clearTimeout(searchTimer))
 
 const searchInputRef = ref<InstanceType<typeof SearchInput> | null>(null)
 
