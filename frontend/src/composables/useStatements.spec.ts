@@ -3,10 +3,13 @@ import type { StatementResponse } from '@/api/types.gen'
 
 vi.mock('@/api/sdk.gen', () => ({
   getStatementsApiV1StatementsGet: vi.fn<(...args: unknown[]) => unknown>(),
-  searchStatementsApiV1StatementsSearchGet: vi.fn<(...args: unknown[]) => unknown>()
+  searchStatementsApiV1StatementsSearchGet: vi.fn<(...args: unknown[]) => unknown>(),
 }))
 
-import { getStatementsApiV1StatementsGet, searchStatementsApiV1StatementsSearchGet } from '@/api/sdk.gen'
+import {
+  getStatementsApiV1StatementsGet,
+  searchStatementsApiV1StatementsSearchGet,
+} from '@/api/sdk.gen'
 import { useStatements } from './useStatements'
 
 type Result = { data?: StatementResponse[]; error?: unknown }
@@ -26,7 +29,13 @@ function deferred() {
       signal?.addEventListener('abort', () => rej(new DOMException('Aborted', 'AbortError')))
     })
   }
-  return { impl, resolve: (r: Result) => resolve(r), get signal() { return signal } }
+  return {
+    impl,
+    resolve: (r: Result) => resolve(r),
+    get signal() {
+      return signal
+    },
+  }
 }
 
 describe('useStatements list requests', () => {
@@ -53,7 +62,7 @@ describe('useStatements list requests', () => {
     second.resolve({ data: [statement(2)] })
     await secondDone
     expect(loading.value).toBe(false)
-    expect(statements.value.map(s => s.id)).toEqual([2])
+    expect(statements.value.map((s) => s.id)).toEqual([2])
   })
 
   it('ignores a stale response that arrives after a newer one', async () => {
@@ -61,7 +70,12 @@ describe('useStatements list requests', () => {
     let resolveFirst!: (r: Result) => void
     const second = deferred()
     vi.mocked(searchStatementsApiV1StatementsSearchGet)
-      .mockImplementationOnce((() => new Promise<Result>(res => { resolveFirst = res })) as never)
+      .mockImplementationOnce(
+        (() =>
+          new Promise<Result>((res) => {
+            resolveFirst = res
+          })) as never,
+      )
       .mockImplementationOnce(second.impl as never)
 
     const { statements, searchStatements } = useStatements()
@@ -73,6 +87,6 @@ describe('useStatements list requests', () => {
     resolveFirst({ data: [statement(1)] })
     await firstDone
 
-    expect(statements.value.map(s => s.id)).toEqual([2])
+    expect(statements.value.map((s) => s.id)).toEqual([2])
   })
 })

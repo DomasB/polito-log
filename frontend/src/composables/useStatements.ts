@@ -8,16 +8,14 @@ import {
   deleteStatementApiV1StatementsStatementIdDelete,
   searchStatementsApiV1StatementsSearchGet,
   getStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGet,
-  getStatementsByPartyApiV1StatementsPartyPartyGet
+  getStatementsByPartyApiV1StatementsPartyPartyGet,
 } from '@/api/sdk.gen'
-import type {
-  StatementResponse,
-  StatementCreate,
-  StatementUpdate
-} from '@/api/types.gen'
+import type { StatementResponse, StatementCreate, StatementUpdate } from '@/api/types.gen'
 
 function isAbortError(err: unknown): boolean {
-  return typeof err === 'object' && err !== null && (err as { name?: unknown }).name === 'AbortError'
+  return (
+    typeof err === 'object' && err !== null && (err as { name?: unknown }).name === 'AbortError'
+  )
 }
 
 /**
@@ -47,7 +45,7 @@ export function useStatements() {
   async function runListRequest(
     errorMessage: string,
     request: (signal: AbortSignal) => Promise<{ data?: StatementResponse[]; error?: unknown }>,
-    onData?: (data: StatementResponse[]) => void
+    onData?: (data: StatementResponse[]) => void,
   ): Promise<StatementResponse[] | null> {
     listController?.abort()
     const controller = new AbortController()
@@ -86,18 +84,23 @@ export function useStatements() {
   /**
    * Fetch all statements with pagination
    */
-  async function fetchStatements(options: { skip?: number; limit?: number; activeOnly?: boolean } = {}) {
+  async function fetchStatements(
+    options: { skip?: number; limit?: number; activeOnly?: boolean } = {},
+  ) {
     await runListRequest(
       'Failed to fetch statements',
-      (signal) => getStatementsApiV1StatementsGet({
-        query: {
-          skip: options.skip ?? 0,
-          limit: options.limit ?? 100,
-          active_only: options.activeOnly ?? true
-        },
-        signal
-      }),
-      (data) => { totalCount.value = data.length }
+      (signal) =>
+        getStatementsApiV1StatementsGet({
+          query: {
+            skip: options.skip ?? 0,
+            limit: options.limit ?? 100,
+            active_only: options.activeOnly ?? true,
+          },
+          signal,
+        }),
+      (data) => {
+        totalCount.value = data.length
+      },
     )
   }
 
@@ -110,7 +113,7 @@ export function useStatements() {
 
     try {
       const { data, error: apiError } = await getStatementApiV1StatementsStatementIdGet({
-        path: { statement_id: id }
+        path: { statement_id: id },
       })
 
       if (apiError) {
@@ -137,7 +140,7 @@ export function useStatements() {
 
     try {
       const { data, error: apiError } = await createStatementApiV1StatementsPost({
-        body: statementData
+        body: statementData,
       })
 
       if (apiError) {
@@ -166,7 +169,7 @@ export function useStatements() {
     try {
       const { data, error: apiError } = await updateStatementApiV1StatementsStatementIdPut({
         path: { statement_id: id },
-        body: updates
+        body: updates,
       })
 
       if (apiError) {
@@ -204,7 +207,7 @@ export function useStatements() {
     try {
       const { error: apiError } = await deleteStatementApiV1StatementsStatementIdDelete({
         path: { statement_id: id },
-        query: { soft_delete: softDelete }
+        query: { soft_delete: softDelete },
       })
 
       if (apiError) {
@@ -233,16 +236,15 @@ export function useStatements() {
    * Search statements by text
    */
   async function searchStatements(query: string, options: { skip?: number; limit?: number } = {}) {
-    const data = await runListRequest(
-      'Search failed',
-      (signal) => searchStatementsApiV1StatementsSearchGet({
+    const data = await runListRequest('Search failed', (signal) =>
+      searchStatementsApiV1StatementsSearchGet({
         query: {
           q: query,
           skip: options.skip ?? 0,
-          limit: options.limit ?? 100
+          limit: options.limit ?? 100,
         },
-        signal
-      })
+        signal,
+      }),
     )
     return data ?? []
   }
@@ -250,18 +252,22 @@ export function useStatements() {
   /**
    * Fetch statements by politician
    */
-  async function fetchByPolitician(politicianName: string, options: { skip?: number; limit?: number } = {}) {
+  async function fetchByPolitician(
+    politicianName: string,
+    options: { skip?: number; limit?: number } = {},
+  ) {
     loading.value = true
     error.value = null
 
     try {
-      const { data, error: apiError } = await getStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGet({
-        path: { politician_name: politicianName },
-        query: {
-          skip: options.skip ?? 0,
-          limit: options.limit ?? 100
-        }
-      })
+      const { data, error: apiError } =
+        await getStatementsByPoliticianApiV1StatementsPoliticianPoliticianNameGet({
+          path: { politician_name: politicianName },
+          query: {
+            skip: options.skip ?? 0,
+            limit: options.limit ?? 100,
+          },
+        })
 
       if (apiError) {
         throw new Error('Failed to fetch statements by politician')
@@ -290,8 +296,8 @@ export function useStatements() {
         path: { party },
         query: {
           skip: options.skip ?? 0,
-          limit: options.limit ?? 100
-        }
+          limit: options.limit ?? 100,
+        },
       })
 
       if (apiError) {
@@ -349,6 +355,6 @@ export function useStatements() {
     fetchByPolitician,
     fetchByParty,
     clearError,
-    reset
+    reset,
   }
 }

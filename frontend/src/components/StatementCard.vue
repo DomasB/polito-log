@@ -10,12 +10,7 @@
         {{ statement.politician_name }}
         <n-text depth="3" style="font-weight: 400"> ({{ statement.party }})</n-text>
       </n-text>
-      <n-tag
-        :type="statusType"
-        size="small"
-        :bordered="false"
-        round
-      >
+      <n-tag :type="statusType" size="small" :bordered="false" round>
         {{ statusKey }}
       </n-tag>
     </div>
@@ -23,7 +18,7 @@
     <n-text depth="1" class="body-text">{{ statement.statement_text }}</n-text>
 
     <div class="meta">
-      <n-text v-if="statement.category" depth="3" style="font-size: 11px;">
+      <n-text v-if="statement.category" depth="3" style="font-size: 11px">
         {{ statement.category }}
       </n-text>
 
@@ -74,11 +69,11 @@ const statusType = computed(() => STATUS_TYPE_MAP[statusKey.value])
 const absoluteDate = computed(() =>
   props.statement.statement_date
     ? new Date(props.statement.statement_date).toLocaleDateString('en-CA')
-    : ''
+    : '',
 )
 
 const relativeTime = computed(() =>
-  props.statement.statement_date ? getRelativeTime(props.statement.statement_date) : ''
+  props.statement.statement_date ? getRelativeTime(props.statement.statement_date) : '',
 )
 
 function getRelativeTime(iso: string): string {

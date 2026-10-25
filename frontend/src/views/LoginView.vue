@@ -69,12 +69,7 @@ async function handleRequestMagicLink() {
             We've sent you a magic link. Click the link in your email to complete login.
           </n-alert>
 
-          <n-button
-            text
-            type="primary"
-            @click="step = 'email'"
-            style="margin-top: 16px"
-          >
+          <n-button text type="primary" @click="step = 'email'" style="margin-top: 16px">
             Send another link
           </n-button>
         </div>

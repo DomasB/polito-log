@@ -11,7 +11,7 @@ import '@/assets/design-tokens.css'
 // In production: uses VITE_API_URL from Railway environment variables
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 client.setConfig({
-  baseUrl: apiUrl
+  baseUrl: apiUrl,
 })
 
 // Set up request interceptor to automatically inject authorization headers
