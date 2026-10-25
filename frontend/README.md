@@ -44,8 +44,11 @@ npm run build
 ### Run Unit Tests with [Vitest](https://vitest.dev/)
 
 ```sh
-npm run test:unit
+npm run test:unit        # watch mode
+npx vitest run           # single run, as in CI
 ```
+
+CI (`.github/workflows/frontend-ci.yml`) runs `npm run build` (type-check and build) and `npx vitest run` on every push to `main` and every PR that touches `frontend/`. Railway only deploys the frontend once that run is green. See [DEPLOYMENT.md](../DEPLOYMENT.md).
 
 ### Lint with [ESLint](https://eslint.org/)
 

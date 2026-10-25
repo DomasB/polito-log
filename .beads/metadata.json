@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "polito_log",
+  "project_id": "90ccef2c-2d92-46a0-b831-188d49b9c79a"
+}

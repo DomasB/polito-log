@@ -312,6 +312,18 @@ Then in VSCode:
 
 **See [DEBUG.md](DEBUG.md) for complete debugging guide.**
 
+### Running Tests
+
+Tests live in `tests/` and run with pytest. The API smoke tests need a real PostgreSQL (the models use native enums, so SQLite won't do). The easiest one is the dev stack's database, which `./dev.sh` exposes on `localhost:5432`:
+
+```bash
+./dev.sh                                   # start the stack (DB on localhost:5432)
+pip install -r requirements.txt -r requirements-dev.txt
+DATABASE_URL=postgresql://polito_user:polito_password@localhost:5432/polito_log pytest
+```
+
+The tests create the tables they need and delete the rows they add. CI (`.github/workflows/backend-ci.yml`) runs the same suite against a fresh Postgres 17 on every push to `main` and every PR that touches `backend/`. Railway only deploys the backend once that run is green. See [DEPLOYMENT.md](../DEPLOYMENT.md).
+
 ### Code Style
 
 The codebase follows:
