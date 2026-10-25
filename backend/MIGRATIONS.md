@@ -18,7 +18,7 @@ adopted. Running it again is a no-op.
 ## Where migrations run
 
 - **Production (Railway):** the backend's pre-deploy command,
-  `python -m app.cli migrate` (`backend/railway.json`, `deploy.preDeployCommand`).
+  `python -m app.cli migrate` (`preDeploy` in `.railway/railway.ts`).
   It runs once per deploy in a separate container, before the new version takes
   traffic. A failed migration stops the deploy and the old version keeps
   serving. Output is in the deployment's logs. Migrations do not run at
