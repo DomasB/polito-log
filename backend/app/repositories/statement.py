@@ -113,16 +113,20 @@ class StatementRepository(BaseRepository[Statement]):
         Returns:
             List of Statement instances
         """
-        search_pattern = f"%{search_text}%"
+        # Escape LIKE wildcards so % and _ in the query match literally
+        escaped = (
+            search_text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        )
+        search_pattern = f"%{escaped}%"
         return (
             self.db.query(Statement)
             .filter(
                 and_(
                     Statement.is_active == True,
                     or_(
-                        Statement.statement_text.ilike(search_pattern),
-                        Statement.politician_name.ilike(search_pattern),
-                        Statement.party.ilike(search_pattern)
+                        Statement.statement_text.ilike(search_pattern, escape="\\"),
+                        Statement.politician_name.ilike(search_pattern, escape="\\"),
+                        Statement.party.ilike(search_pattern, escape="\\")
                     )
                 )
             )
