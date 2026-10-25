@@ -294,18 +294,11 @@ export const updateCurrentUserProfileApiV1AuthMePut = <ThrowOnError extends bool
  * current_user: Current authenticated user from JWT
  * service: Auth service instance
  */
-export const logoutEverywhereApiV1AuthLogoutAllPost = <ThrowOnError extends boolean = false>(options?: Options<LogoutEverywhereApiV1AuthLogoutAllPostData, ThrowOnError>) => {
-    return (options?.client ?? client).post<LogoutEverywhereApiV1AuthLogoutAllPostResponses, unknown, ThrowOnError>({
-        security: [
-            {
-                scheme: 'bearer',
-                type: 'http'
-            }
-        ],
-        url: '/api/v1/auth/logout-all',
-        ...options
-    });
-};
+export const logoutEverywhereApiV1AuthLogoutAllPost = <ThrowOnError extends boolean = false>(options?: Options<LogoutEverywhereApiV1AuthLogoutAllPostData, ThrowOnError>): RequestResult<LogoutEverywhereApiV1AuthLogoutAllPostResponses, unknown, ThrowOnError> => (options?.client ?? client).post<LogoutEverywhereApiV1AuthLogoutAllPostResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/auth/logout-all',
+    ...options
+});
 
 /**
  * Health Check
