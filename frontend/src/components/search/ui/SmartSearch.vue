@@ -24,7 +24,7 @@ const {
   removeToken,
   close,
   handleKeyDown: coreHandleKeyDown,
-  selectSuggestion: coreSelectSuggestion
+  selectSuggestion: coreSelectSuggestion,
 } = useSearch()
 
 // Emit the query (debounced) whenever the committed tokens change, so quick
@@ -54,7 +54,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
 const listboxId = useId()
 const expanded = computed(() => suggestions.value.length > 0)
 const activeDescendant = computed(() =>
-  expanded.value && activeIndex.value >= 0 ? `${listboxId}-${activeIndex.value}` : undefined
+  expanded.value && activeIndex.value >= 0 ? `${listboxId}-${activeIndex.value}` : undefined,
 )
 
 // Screen-reader announcements for chips being added or removed
@@ -72,16 +72,18 @@ function capitalize(s: string) {
 }
 
 watch(tokens, (next, prev) => {
-  const prevIds = new Set(prev.map(t => t.id))
-  const nextIds = new Set(next.map(t => t.id))
+  const prevIds = new Set(prev.map((t) => t.id))
+  const nextIds = new Set(next.map((t) => t.id))
   const messages = [
-    ...next.filter(t => !prevIds.has(t.id)).map(describeAdded),
-    ...prev.filter(t => !nextIds.has(t.id)).map(t => `${capitalize(describeToken(t))} removed`)
+    ...next.filter((t) => !prevIds.has(t.id)).map(describeAdded),
+    ...prev.filter((t) => !nextIds.has(t.id)).map((t) => `${capitalize(describeToken(t))} removed`),
   ]
   if (messages.length === 0) return
   // Clear first so repeating the same message is announced again
   announcement.value = ''
-  nextTick(() => { announcement.value = messages.join('. ') })
+  nextTick(() => {
+    announcement.value = messages.join('. ')
+  })
 })
 
 const searchInputRef = ref<InstanceType<typeof SearchInput> | null>(null)
@@ -116,7 +118,7 @@ function onKeyDown(e: KeyboardEvent) {
       @blur="close"
       @remove-token="removeToken"
     />
-    
+
     <SuggestionList
       :suggestions="suggestions"
       :active-index="activeIndex"

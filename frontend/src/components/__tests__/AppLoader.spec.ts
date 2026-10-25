@@ -3,25 +3,27 @@ import { mount } from '@vue/test-utils'
 
 import AppLoader from '../AppLoader.vue'
 
+const noop = () => vi.fn<() => void>()
+
 function stubContext() {
-  const gradient = { addColorStop: vi.fn() }
+  const gradient = { addColorStop: noop() }
   return {
-    scale: vi.fn(),
-    clearRect: vi.fn(),
-    beginPath: vi.fn(),
-    moveTo: vi.fn(),
-    lineTo: vi.fn(),
-    stroke: vi.fn(),
-    arc: vi.fn(),
-    fill: vi.fn(),
-    createLinearGradient: vi.fn(() => gradient),
-    createRadialGradient: vi.fn(() => gradient),
+    scale: noop(),
+    clearRect: noop(),
+    beginPath: noop(),
+    moveTo: noop(),
+    lineTo: noop(),
+    stroke: noop(),
+    arc: noop(),
+    fill: noop(),
+    createLinearGradient: vi.fn<() => typeof gradient>(() => gradient),
+    createRadialGradient: vi.fn<() => typeof gradient>(() => gradient),
   }
 }
 
 describe('AppLoader', () => {
-  const raf = vi.fn(() => 42)
-  const caf = vi.fn()
+  const raf = vi.fn<(cb: FrameRequestCallback) => number>(() => 42)
+  const caf = vi.fn<(id: number) => void>()
 
   beforeEach(() => {
     vi.stubGlobal('requestAnimationFrame', raf)

@@ -21,16 +21,19 @@ onBeforeUpdate(() => {
 })
 
 // Scroll active item into view
-watch(() => props.activeIndex, (newIndex) => {
-  if (newIndex >= 0 && newIndex < props.suggestions.length) {
-    nextTick(() => {
-      const el = itemRefs.value[newIndex]
-      if (el) {
-        el.scrollIntoView({ block: 'nearest' })
-      }
-    })
-  }
-})
+watch(
+  () => props.activeIndex,
+  (newIndex) => {
+    if (newIndex >= 0 && newIndex < props.suggestions.length) {
+      nextTick(() => {
+        const el = itemRefs.value[newIndex]
+        if (el) {
+          el.scrollIntoView({ block: 'nearest' })
+        }
+      })
+    }
+  },
+)
 
 // A tap selects only if it starts and ends on the same item with the same
 // pointer, so a drag released over an item (or a scroll) doesn't select.
@@ -84,18 +87,36 @@ function optionId(index: number) {
             @pointercancel="onPointerAbort"
             @pointerleave="onPointerAbort"
             @click="onClick($event, item)"
-            :ref="el => { if (el) itemRefs[index] = (el as any).$el || el }"
+            :ref="
+              (el) => {
+                if (el) itemRefs[index] = (el as any).$el || el
+              }
+            "
           >
             <NThing content-indented>
               <template #header>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <NTag v-if="item.type === 'key'" type="info" size="small" :bordered="false" aria-hidden="true">Key</NTag>
-                  <NTag v-else-if="item.type === 'value'" type="success" size="small" :bordered="false" aria-hidden="true">Value</NTag>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <NTag
+                    v-if="item.type === 'key'"
+                    type="info"
+                    size="small"
+                    :bordered="false"
+                    aria-hidden="true"
+                    >Key</NTag
+                  >
+                  <NTag
+                    v-else-if="item.type === 'value'"
+                    type="success"
+                    size="small"
+                    :bordered="false"
+                    aria-hidden="true"
+                    >Value</NTag
+                  >
                   <NText strong>{{ item.label }}</NText>
                 </div>
               </template>
               <template #description v-if="item.description">
-                <NText depth="3" style="font-size: 12px;">{{ item.description }}</NText>
+                <NText depth="3" style="font-size: 12px">{{ item.description }}</NText>
               </template>
             </NThing>
           </NListItem>
@@ -113,7 +134,10 @@ function optionId(index: number) {
   right: 0;
   z-index: 1000;
   margin-top: 4px;
-  box-shadow: 0 3px 6px -4px rgba(0, 0, 0, .12), 0 6px 16px 0 rgba(0, 0, 0, .08), 0 9px 28px 8px rgba(0, 0, 0, .05); /* Naive UI shadow approx */
+  box-shadow:
+    0 3px 6px -4px rgba(0, 0, 0, 0.12),
+    0 6px 16px 0 rgba(0, 0, 0, 0.08),
+    0 9px 28px 8px rgba(0, 0, 0, 0.05); /* Naive UI shadow approx */
 }
 
 .active-item {

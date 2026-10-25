@@ -4,13 +4,16 @@ import { ref, watch, onBeforeUnmount, useSlots } from 'vue'
 // Polito-log comet loader: a teal dot sweeps along a short track, its tail
 // stretching with speed. With a default slot it overlays the slotted content
 // (like NSpin's `show`); without one it renders on its own.
-const props = withDefaults(defineProps<{
-  show?: boolean
-  label?: string
-}>(), {
-  show: true,
-  label: 'loading',
-})
+const props = withDefaults(
+  defineProps<{
+    show?: boolean
+    label?: string
+  }>(),
+  {
+    show: true,
+    label: 'loading',
+  },
+)
 
 const slots = useSlots()
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -124,10 +127,14 @@ function start(el: HTMLCanvasElement) {
 }
 
 // The canvas lives inside `v-if="show"`, so (re)start whenever it mounts
-watch(canvas, el => {
-  stop()
-  if (el) start(el)
-}, { flush: 'post' })
+watch(
+  canvas,
+  (el) => {
+    stop()
+    if (el) start(el)
+  },
+  { flush: 'post' },
+)
 
 onBeforeUnmount(stop)
 </script>
@@ -181,8 +188,14 @@ onBeforeUnmount(stop)
 }
 
 @keyframes loader-appear {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .app-loader__canvas {
@@ -201,8 +214,13 @@ onBeforeUnmount(stop)
 }
 
 @keyframes label-breathe {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

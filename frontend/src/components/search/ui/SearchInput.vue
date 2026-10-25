@@ -28,11 +28,11 @@ const errorIdPrefix = useId()
 
 const inputValue = computed({
   get: () => props.buffer,
-  set: (val) => emit('update:buffer', val)
+  set: (val) => emit('update:buffer', val),
 })
 
 const placeholder = computed(() =>
-  props.tokens.length ? '' : 'Search or filter, e.g. status:verified'
+  props.tokens.length ? '' : 'Search or filter, e.g. status:verified',
 )
 
 function errorId(token: SearchToken) {
@@ -70,7 +70,7 @@ function onRemove(index: number, event: MouseEvent) {
 }
 
 defineExpose({
-  focus
+  focus,
 })
 </script>
 
@@ -86,23 +86,16 @@ defineExpose({
       '--n-box-shadow-focus': `0 0 0 2px ${themeVars.primaryColor}33`,
       '--n-color-background': themeVars.inputColor,
       '--n-text-color': themeVars.textColor2,
-      '--n-placeholder-color': themeVars.placeholderColor
+      '--n-placeholder-color': themeVars.placeholderColor,
     }"
   >
     <NSpace :size="4" align="center" wrap item-style="display: flex;">
-      <NTooltip
-        v-for="(token, index) in tokens"
-        :key="token.id"
-        :disabled="!hasError(token)"
-      >
+      <NTooltip v-for="(token, index) in tokens" :key="token.id" :disabled="!hasError(token)">
         <template #trigger>
-          <NTag
-            :type="tagType(token)"
-            size="small"
-            :class="{ 'token-error': hasError(token) }"
-          >
+          <NTag :type="tagType(token)" size="small" :class="{ 'token-error': hasError(token) }">
             <span v-if="token.type === 'filter'">
-              <strong>{{ token.filterKey }}</strong>{{ token.operator }}{{ token.value }}
+              <strong>{{ token.filterKey }}</strong
+              >{{ token.operator }}{{ token.value }}
             </span>
             <span v-else>
               {{ token.value }}
@@ -139,7 +132,11 @@ defineExpose({
     </NSpace>
 
     <template v-for="token in tokens" :key="token.id">
-      <span v-if="token.type === 'filter' && token.error" :id="errorId(token)" class="visually-hidden">
+      <span
+        v-if="token.type === 'filter' && token.error"
+        :id="errorId(token)"
+        class="visually-hidden"
+      >
         {{ token.error }}, not applied to results
       </span>
     </template>
@@ -155,7 +152,9 @@ defineExpose({
   display: flex;
   align-items: center;
   background-color: var(--n-color-background);
-  transition: border-color 0.3s, box-shadow 0.3s;
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s;
   cursor: text;
 }
 

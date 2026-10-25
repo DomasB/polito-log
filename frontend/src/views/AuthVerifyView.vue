@@ -50,9 +50,7 @@ onMounted(async () => {
         :description="authStore.error"
       >
         <template #footer>
-          <n-button type="primary" @click="router.push('/login')">
-            Back to Login
-          </n-button>
+          <n-button type="primary" @click="router.push('/login')"> Back to Login </n-button>
         </template>
       </n-result>
 

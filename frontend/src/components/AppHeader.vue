@@ -66,28 +66,14 @@ function handleLoginClick() {
 
       <div class="user-section">
         <n-space v-if="authStore.isAuthenticated" align="center">
-          <n-dropdown
-            :options="dropdownOptions"
-            @select="handleDropdownSelect"
-            trigger="click"
-          >
-            <n-avatar
-              round
-              class="user-avatar"
-              style="cursor: pointer"
-            >
+          <n-dropdown :options="dropdownOptions" @select="handleDropdownSelect" trigger="click">
+            <n-avatar round class="user-avatar" style="cursor: pointer">
               {{ userInitial }}
             </n-avatar>
           </n-dropdown>
         </n-space>
 
-        <n-button
-          v-else
-          type="primary"
-          @click="handleLoginClick"
-        >
-          Login
-        </n-button>
+        <n-button v-else type="primary" @click="handleLoginClick"> Login </n-button>
       </div>
     </div>
   </header>

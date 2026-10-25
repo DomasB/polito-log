@@ -25,7 +25,7 @@ New endpoints follow this chain.
 The frontend client in `frontend/src/api` is generated from the backend's OpenAPI spec. After changing a schema or route, run the backend, then `npm run generate-api`, and commit the regenerated client with the backend change. Usage: `frontend/API_CLIENT.md`.
 
 ## Verifying changes
-- Frontend: `npm run type-check`, `npm run test:unit`. `npm run lint` rewrites files (`--fix`).
+- Frontend: `npm run type-check`, `npm run test:unit`. `npm run lint` (oxlint) rewrites files (`--fix`); `npm run format` runs oxfmt.
 - Backend: `cd backend && DATABASE_URL=postgresql://polito_user:polito_password@localhost:5432/polito_log pytest` (needs the `./dev.sh` stack's Postgres). For endpoint behavior not covered by tests, use Swagger or `curl` against the running stack.
 
 ## Issue tracking
