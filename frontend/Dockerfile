@@ -1,7 +1,7 @@
 # Multi-stage build for optimized production frontend
 
 # Stage 1: Build the application
-FROM node:20-alpine as builder
+FROM node:24-alpine as builder
 
 WORKDIR /app
 

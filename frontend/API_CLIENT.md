@@ -58,19 +58,13 @@ The generator is configured in `openapi-ts.config.ts`:
 import { defineConfig } from '@hey-api/openapi-ts'
 
 export default defineConfig({
-  client: '@hey-api/client-fetch',    // Use native fetch API
   input: 'http://localhost:8000/api/v1/openapi.json',
-  output: {
-    path: 'src/api',
-    format: 'prettier',
-    lint: 'eslint'
-  },
-  types: {
-    enums: 'javascript'               // Generate enums as const objects
-  },
-  services: {
-    asClass: false                    // Generate functions, not classes
-  }
+  output: 'src/api',
+  plugins: [
+    '@hey-api/client-fetch', // native fetch client, bundled into src/api/client
+    '@hey-api/typescript',   // types.gen.ts (enums as union types)
+    '@hey-api/sdk',          // sdk.gen.ts: one function per endpoint
+  ],
 })
 ```
 
@@ -374,13 +368,6 @@ cd ../backend && ./dev.sh
 **Solution:** Regenerate the client:
 ```bash
 npm run generate-api
-```
-
-### "Module not found: @hey-api/client-fetch"
-
-**Solution:** Install dependencies:
-```bash
-npm install
 ```
 
 ## Learn More
