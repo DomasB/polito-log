@@ -705,6 +705,10 @@ export type RequestMagicLinkApiV1AuthMagicLinkPostErrors = {
      * Validation Error
      */
     422: HttpValidationError;
+    /**
+     * Too many magic link requests
+     */
+    429: unknown;
 };
 
 export type RequestMagicLinkApiV1AuthMagicLinkPostError = RequestMagicLinkApiV1AuthMagicLinkPostErrors[keyof RequestMagicLinkApiV1AuthMagicLinkPostErrors];

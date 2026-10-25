@@ -21,6 +21,14 @@ class UsernameUnavailableError(Exception):
     """Raised when a requested username is reserved or already taken."""
 
 
+class RateLimitExceededError(Exception):
+    """Raised when too many magic links were requested recently."""
+
+    def __init__(self, retry_after_seconds: int):
+        super().__init__("Too many magic link requests, try again later")
+        self.retry_after_seconds = retry_after_seconds
+
+
 class AuthService:
     """Service layer for authentication business logic."""
 
@@ -37,17 +45,28 @@ class AuthService:
         self.email_sender = email_sender
         self.db = db
 
-    async def request_magic_link(self, email: str) -> Tuple[bool, str]:
+    async def request_magic_link(
+        self,
+        email: str,
+        client_ip: Optional[str] = None
+    ) -> Tuple[bool, str]:
         """
         Request a magic link for authentication.
         Creates a new user if email doesn't exist.
 
         Args:
             email: Email address to send magic link to
+            client_ip: IP address of the requester, for rate limiting
 
         Returns:
             Tuple of (success: bool, message: str)
+
+        Raises:
+            RateLimitExceededError: If the email or IP requested too many links
+                within MAGIC_LINK_RATE_LIMIT_WINDOW_MINUTES
         """
+        self._check_rate_limit(email, client_ip)
+
         # Check if user exists
         user = self.user_repository.get_by_email(email)
 
@@ -64,6 +83,7 @@ class AuthService:
             token_hash=hash_magic_link_token(token),
             email=email,
             user_id=user.id if user else None,
+            request_ip=client_ip,
             expires_at=expires_at
         )
         self.magic_link_repository.create(magic_link)
@@ -84,6 +104,19 @@ class AuthService:
             return True, "Magic link sent successfully"
         else:
             return False, "Failed to send magic link"
+
+    def _check_rate_limit(self, email: str, client_ip: Optional[str]) -> None:
+        """Raise RateLimitExceededError if this email or IP is over its limit."""
+        window = timedelta(minutes=settings.MAGIC_LINK_RATE_LIMIT_WINDOW_MINUTES)
+        since = datetime.now(timezone.utc) - window
+        over_email = self.magic_link_repository.count_created_since(
+            since, email=email
+        ) >= settings.MAGIC_LINK_RATE_LIMIT_PER_EMAIL
+        over_ip = client_ip is not None and self.magic_link_repository.count_created_since(
+            since, request_ip=client_ip
+        ) >= settings.MAGIC_LINK_RATE_LIMIT_PER_IP
+        if over_email or over_ip:
+            raise RateLimitExceededError(int(window.total_seconds()))
 
     def verify_magic_link(self, token: str) -> Optional[Tuple[User, str]]:
         """

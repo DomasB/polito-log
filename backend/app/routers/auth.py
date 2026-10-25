@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.services.auth import AuthService, UsernameUnavailableError
+from app.services.auth import AuthService, RateLimitExceededError, UsernameUnavailableError
 from app.schemas.auth import (
     MagicLinkRequest,
     MagicLinkResponse,
@@ -11,6 +12,7 @@ from app.schemas.auth import (
     TokenVerify
 )
 from app.schemas.user import UserResponse, UserSelfUpdate, UserSummary
+from app.core.client_ip import get_client_ip
 from app.core.dependencies import get_email_sender, get_current_user
 from app.core.email import EmailSender
 from app.models.user import User
@@ -35,10 +37,12 @@ def get_auth_service(
     "/magic-link",
     response_model=MagicLinkResponse,
     status_code=status.HTTP_200_OK,
-    summary="Request magic link for authentication"
+    summary="Request magic link for authentication",
+    responses={429: {"description": "Too many magic link requests"}}
 )
 async def request_magic_link(
     request: MagicLinkRequest,
+    client_ip: Optional[str] = Depends(get_client_ip),
     service: AuthService = Depends(get_auth_service)
 ) -> MagicLinkResponse:
     """
@@ -54,9 +58,17 @@ async def request_magic_link(
         Response with success message
 
     Raises:
-        HTTPException: 500 if failed to send email
+        HTTPException: 429 if the email or IP requested too many links
+            recently, 500 if failed to send email
     """
-    success, message = await service.request_magic_link(request.email)
+    try:
+        success, message = await service.request_magic_link(request.email, client_ip)
+    except RateLimitExceededError as error:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(error),
+            headers={"Retry-After": str(error.retry_after_seconds)}
+        )
 
     if not success:
         raise HTTPException(

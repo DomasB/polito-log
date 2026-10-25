@@ -254,7 +254,8 @@ export const searchStatementsApiV1StatementsSearchGet = <ThrowOnError extends bo
  * Response with success message
  *
  * Raises:
- * HTTPException: 500 if failed to send email
+ * HTTPException: 429 if the email or IP requested too many links
+ * recently, 500 if failed to send email
  */
 export const requestMagicLinkApiV1AuthMagicLinkPost = <ThrowOnError extends boolean = false>(options: Options<RequestMagicLinkApiV1AuthMagicLinkPostData, ThrowOnError>) => {
     return (options.client ?? client).post<RequestMagicLinkApiV1AuthMagicLinkPostResponses, RequestMagicLinkApiV1AuthMagicLinkPostErrors, ThrowOnError>({

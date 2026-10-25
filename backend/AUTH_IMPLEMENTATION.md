@@ -167,6 +167,14 @@ JWT_ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 days
 # Magic Link Settings
 MAGIC_LINK_EXPIRE_MINUTES=15
 FRONTEND_URL=http://localhost:5173
+
+# Magic link rate limits (per window, per email and per client IP; over the limit: 429)
+MAGIC_LINK_RATE_LIMIT_WINDOW_MINUTES=60
+MAGIC_LINK_RATE_LIMIT_PER_EMAIL=5
+MAGIC_LINK_RATE_LIMIT_PER_IP=20
+# Reverse proxies in front of the app; the client IP is read from X-Forwarded-For
+# this many entries from the right (Railway: 1, 0 = ignore the header)
+TRUSTED_PROXY_HOPS=1
 ```
 
 **IMPORTANT:** Change `JWT_SECRET_KEY` to a secure random value in production!

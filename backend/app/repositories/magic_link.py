@@ -55,6 +55,30 @@ class MagicLinkRepository(BaseRepository[MagicLink]):
         # If another request consumed the link first, it is not among the rows.
         return next((email for hash_, email in used if hash_ == token_hash), None)
 
+    def count_created_since(
+        self,
+        since: datetime,
+        email: Optional[str] = None,
+        request_ip: Optional[str] = None
+    ) -> int:
+        """
+        Count magic links created since a point in time.
+
+        Args:
+            since: Start of the window
+            email: Only count links for this email (optional)
+            request_ip: Only count links requested from this IP (optional)
+
+        Returns:
+            Number of links
+        """
+        query = self.db.query(MagicLink).filter(MagicLink.created_at >= since)
+        if email is not None:
+            query = query.filter(MagicLink.email == email)
+        if request_ip is not None:
+            query = query.filter(MagicLink.request_ip == request_ip)
+        return query.count()
+
     def cleanup_expired(self) -> int:
         """
         Delete expired magic links.

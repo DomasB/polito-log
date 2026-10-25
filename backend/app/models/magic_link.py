@@ -15,6 +15,8 @@ class MagicLink(Base):
     token_hash: str = Column(String(64), unique=True, nullable=False, index=True)
     email: str = Column(String(255), nullable=False, index=True)
     user_id: int = Column(Integer, ForeignKey("users.id"), nullable=True)  # Null for new users
+    # Client IP of the request that created the link, for rate limiting
+    request_ip: str = Column(String(45), nullable=True, index=True)
     is_used: bool = Column(Boolean, default=False, nullable=False)
     expires_at: datetime = Column(DateTime(timezone=True), nullable=False)
     created_at: datetime = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

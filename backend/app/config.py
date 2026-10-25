@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     MAGIC_LINK_EXPIRE_MINUTES: int = 15  # Magic links expire in 15 minutes
     FRONTEND_URL: str = "http://localhost:5173"  # Frontend URL for magic links
 
+    # Magic link rate limits: requests allowed per window, per email and per client IP
+    MAGIC_LINK_RATE_LIMIT_WINDOW_MINUTES: int = 60
+    MAGIC_LINK_RATE_LIMIT_PER_EMAIL: int = 5
+    MAGIC_LINK_RATE_LIMIT_PER_IP: int = 20
+
+    # Number of reverse proxies in front of the app (Railway: 1). The client IP is
+    # taken from X-Forwarded-For that many entries from the right; 0 ignores it.
+    TRUSTED_PROXY_HOPS: int = 1
+
     # Email Settings
     BREVO_API_KEY: Optional[str] = None  # Brevo (Sendinblue) API key for production emails
     BREVO_SENDER_EMAIL: str = "noreply@polito-log.lt"  # Sender email address
