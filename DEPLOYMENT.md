@@ -44,7 +44,7 @@ The deployment consists of three Railway services:
    - Go to service Settings → General
    - Verify "Root Directory" is set to `/backend`
    - Go to service Settings → Build
-   - Verify "Dockerfile Path" shows `Dockerfile` (relative to root directory)
+   - Verify the builder is "Railpack" (see [Infrastructure as Code](#infrastructure-as-code))
    - Railway will build from the `/backend` directory
 
 #### Backend Environment Variables
@@ -79,7 +79,7 @@ With `ENVIRONMENT=production` the backend **refuses to start** if `JWT_SECRET_KE
    - Go to service Settings → General
    - Verify "Root Directory" is set to `/frontend`
    - Go to service Settings → Build
-   - Verify "Dockerfile Path" shows `Dockerfile` (relative to root directory)
+   - Verify the builder is "Railpack" (see [Infrastructure as Code](#infrastructure-as-code))
    - Railway will build from the `/frontend` directory
 
 #### Frontend Environment Variables
@@ -164,15 +164,27 @@ All of this happens in the Railway dashboard. No GitHub workflow is involved.
 
 ## Database Migrations
 
-Alembic migrations run as a Railway pre-deploy command in `backend/railway.json`. Railway runs it in a separate container with the service's variables, before the new version goes live; if it fails, the deploy stops and the old version keeps serving:
+Alembic migrations run as a Railway pre-deploy command, declared in `.railway/railway.ts` (`preDeploy: "python -m app.cli migrate"` on the backend). Railway runs it in a separate container with the service's variables, before the new version goes live; if it fails, the deploy stops and the old version keeps serving. The app no longer creates tables on startup. Details, including how the first migration adopts the existing production schema: `backend/MIGRATIONS.md`.
 
-```json
-"deploy": {
-  "preDeployCommand": ["python -m app.cli migrate"]
-}
+## Infrastructure as Code
+
+`.railway/railway.ts` is the source of truth for services, source repo and root directories, watch patterns, `preDeploy`, health checks, replicas, domains, and the set of variable names. Variable values are never in git (`preserve()`). Railway does not read this file during deploys; it takes effect only when applied:
+
+```bash
+npm install --prefix .railway   # once
+railway config plan             # show the diff against production
+railway config apply            # apply it
 ```
 
-This only takes effect once Railway applies `backend/railway.json` (see beads issue `polito-log-cf2`); until then, set the same pre-deploy command on the backend service in the dashboard. The app no longer creates tables on startup. Details, including how the first migration adopts the existing production schema: `backend/MIGRATIONS.md`.
+Always read the plan first. A resource missing from the file is deleted on apply, and variables are managed, so a variable missing from `env` is deleted too. Do not use `--include-variables` when pulling. After a dashboard change, run `railway config pull --force --variables=managed` and review the diff, or the next apply reverts it.
+
+`.github/workflows/railway-config.yml` runs `plan` on pull requests that touch `.railway/**` and `apply` when such a PR merges. It needs a production project token as the `RAILWAY_TOKEN` repository secret.
+
+The old `railway.json` files were never read by these services and are removed (Config as Code is deprecated).
+
+**Dashboard-only settings** (the DSL cannot express them):
+- Restart policy: left at Railway's default.
+- Builder: set to the default, Railpack, for both services, so `frontend/Dockerfile`, `nginx.conf` and `docker-entrypoint.sh` are not used in production. Check `railway config plan` after any dashboard change.
 
 ## Environment-Specific Configuration
 
@@ -227,7 +239,6 @@ Access these from each service's "Metrics" tab.
 2. **"Could not find Dockerfile" Error**
    - Cause: Root directory not set correctly in Railway dashboard
    - Solution: Set Root Directory to `/backend` for backend, `/frontend` for frontend
-   - Verify railway.json has `dockerfilePath: "Dockerfile"` (relative to root directory)
 
 3. **Deployment Stuck in WAITING or Marked SKIPPED**
    - WAITING: Railway is waiting for GitHub Actions runs on that commit. Check the Actions tab.
@@ -253,7 +264,7 @@ Access these from each service's "Metrics" tab.
 
 7. **Build Failures**
    - Check Railway build logs for errors
-   - Verify Dockerfile paths are correct in railway.json
+   - Verify the root directory and builder in `.railway/railway.ts`
    - Ensure all dependencies are in requirements.txt/package.json
 
 8. **Database Connection Errors**
@@ -407,9 +418,9 @@ The following files are used for CI and Railway deployment:
 
 - `.github/workflows/backend-ci.yml` - Backend tests (gate for Railway's Wait for CI)
 - `.github/workflows/frontend-ci.yml` - Frontend type-check, build and tests (gate for Railway's Wait for CI)
-- `backend/railway.json` - Backend Railway configuration
-- `frontend/railway.json` - Frontend Railway configuration
-- `frontend/Dockerfile` - Frontend containerization
+- `.railway/railway.ts` - Railway Infrastructure as Code (see above)
+- `.github/workflows/railway-config.yml` - Plans and applies `.railway/railway.ts`
+- `frontend/Dockerfile` - Frontend containerization (local Docker only; production uses Railpack)
 - `frontend/nginx.conf` - Nginx configuration for serving static files
 - `frontend/docker-entrypoint.sh` - Script to configure nginx with Railway PORT
 - `frontend/.env.example` - Template for environment variables
