@@ -27,8 +27,10 @@ Backend:
 - PostgreSQL (primary database)
 
 CI/CD
-- Github Actions
-- Railway
+- Github Actions: runs the backend and frontend tests on every push to `main` and every PR
+- Railway: deploys each service from GitHub, after CI on that commit passes
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for how deploys work.
 
 ## Contributing
 All contributions are welcome. Please read [CONTRIBUTING](CONTRIBUTING.md) on how you can help.
