@@ -1,16 +1,18 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.services.auth import AuthService
+from app.services.auth import AuthService, RateLimitExceededError, UsernameUnavailableError
 from app.schemas.auth import (
     MagicLinkRequest,
     MagicLinkResponse,
     TokenResponse,
     TokenVerify
 )
-from app.schemas.user import UserResponse, UserUpdate
+from app.schemas.user import UserResponse, UserSelfUpdate, UserSummary
+from app.core.client_ip import get_client_ip
 from app.core.dependencies import get_email_sender, get_current_user
 from app.core.email import EmailSender
 from app.models.user import User
@@ -35,10 +37,12 @@ def get_auth_service(
     "/magic-link",
     response_model=MagicLinkResponse,
     status_code=status.HTTP_200_OK,
-    summary="Request magic link for authentication"
+    summary="Request magic link for authentication",
+    responses={429: {"description": "Too many magic link requests"}}
 )
 async def request_magic_link(
     request: MagicLinkRequest,
+    client_ip: Optional[str] = Depends(get_client_ip),
     service: AuthService = Depends(get_auth_service)
 ) -> MagicLinkResponse:
     """
@@ -54,9 +58,17 @@ async def request_magic_link(
         Response with success message
 
     Raises:
-        HTTPException: 500 if failed to send email
+        HTTPException: 429 if the email or IP requested too many links
+            recently, 500 if failed to send email
     """
-    success, message = await service.request_magic_link(request.email)
+    try:
+        success, message = await service.request_magic_link(request.email, client_ip)
+    except RateLimitExceededError as error:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(error),
+            headers={"Retry-After": str(error.retry_after_seconds)}
+        )
 
     if not success:
         raise HTTPException(
@@ -113,11 +125,7 @@ def verify_magic_link(
         access_token=access_token,
         token_type="bearer",
         expires_at=expires_at,
-        user={
-            "id": user.id,
-            "email": user.email,
-            "username": user.username
-        }
+        user=UserSummary.model_validate(user)
     )
 
 
@@ -147,12 +155,13 @@ def get_current_user_profile(
     summary="Update current user profile"
 )
 def update_current_user_profile(
-    user_update: UserUpdate,
+    user_update: UserSelfUpdate,
     current_user: User = Depends(get_current_user),
     service: AuthService = Depends(get_auth_service)
 ) -> UserResponse:
     """
-    Update the current authenticated user's profile.
+    Update the current authenticated user's profile. Only the username can
+    be changed; any other field is rejected with 422.
 
     Args:
         user_update: User update data
@@ -163,17 +172,36 @@ def update_current_user_profile(
         Updated user profile
 
     Raises:
-        HTTPException: 400 if username is already taken
+        HTTPException: 400 if the username is reserved or already taken
     """
-    updated_user = service.update_user_profile(
-        user_id=current_user.id,
-        username=user_update.username
-    )
-
-    if not updated_user:
+    try:
+        return service.update_user_profile(
+            user_id=current_user.id,
+            username=user_update.username
+        )
+    except UsernameUnavailableError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken"
+            detail=str(error)
         )
 
-    return updated_user
+
+@router.post(
+    "/logout-all",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Log out everywhere"
+)
+def logout_everywhere(
+    current_user: User = Depends(get_current_user),
+    service: AuthService = Depends(get_auth_service)
+) -> Response:
+    """
+    Revoke every session token of the current user, including the one used
+    for this request. The user has to log in again with a new magic link.
+
+    Args:
+        current_user: Current authenticated user from JWT
+        service: Auth service instance
+    """
+    service.revoke_sessions(current_user)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
